@@ -1,6 +1,6 @@
 This repo is an experiment. The attempt is to allow someone to train a neural net over their personal photo collection in order to do face detection on the people in those photos. They can then organize the photos by those people into automatic groups.
 
-This problem is characterized by small labeled training sets, as we only want to ask the user to identify a few of the users to train the net. An individual trained photo model will also be kept private and not shared between photo users for privacy reasons.
+This problem is characterized by small labeled training sets, as we only want to ask the user to identify a few of the users to train the net. An individual trained photo model will also be kept private and not shared between photo users for privacy reasons, which can make training more challenging.
 
 This is a playing ground for me to experiment with this; it is a work in progress.
 
