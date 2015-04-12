@@ -1,0 +1,7 @@
+src/siamese_network_bw/data/*
+src/siamese_network_bw/logs/*
+*.caffemodel
+*.solverstate
+.lev_history
+*.pyc
+*.ipynb
