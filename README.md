@@ -4,7 +4,14 @@ This problem is characterized by small labeled training sets, as we only want to
 
 This is a playing ground for me to experiment with this; it is a work in progress.
 
-Current Experiment:
-* Trying to train Caffe model on LFW (Labeled Faces in the Wild) data set, where input is a single LFW image and output is a softmax over all possible labeled classes (i.e. Joe vs. Mary vs. Tom etc.). Once I have initial "hello world" model I will then experiment with its hyperparameters. The theory is that I can then use this trained model to do "transfer learning" over to an individuals personal photo set and small collection of labels.
+Setup:
+* Add the lib/ directory to your PYTHONPATH where you installed this. Example:
+export PYTHONPATH=$PYTHONPATH:~/dev/personal-photos-model/lib
+* Make sure Google Protobufs is installed: sudo pip -g install protobuf
 
-Prior Experiments and results:
+
+Current Experiment:
+* Trying to train Caffe model on LFW (Labeled Faces in the Wild) data set, where input are two LFW images and output is a binary match/not-match classifier. Once I have initial "hello world" model I will then experiment with its hyperparameters. The theory is that I can then use this trained model to do "transfer learning" over to an individuals personal photo set and small collection of labels. For simplicity I am starting with
+grayscale photos and a siamese network based on the MNist convolutional network.
+
+Prior Experiments and Results:
