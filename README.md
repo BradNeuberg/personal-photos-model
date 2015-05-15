@@ -5,8 +5,16 @@ This problem is characterized by small labeled training sets, as we only want to
 This is a playing ground for me to experiment with this; it is a work in progress.
 
 Setup:
-* Add the lib/ directory to your PYTHONPATH where you installed this. Example:
-export PYTHONPATH=$PYTHONPATH:~/dev/personal-photos-model/lib
+* Make sure you've compiled Caffe with the Python bindings on:
+make pycaffe
+make distribute
+* Add a CAFFEHOME environment variable to where you installed Caffe. Example:
+export CAFFEHOME=/usr/local/caffe
+* Make sure you've gone into $CAFFEHOME/python and pip installed the requirements.txt file there:
+cd $CAFFEHOME/python && sudo pip install -r requirements.txt
+* Add the following directories to your Python path (update the personal-photos-model path
+to where you actually installed it):
+export PYTHONPATH=$PYTHONPATH:~/dev/personal-photos-model/lib:~/dev/personal-photos-model/src:$CAFFEHOME/python:$CAFFEHOME/distribute/python
 * Make sure Google Protobufs is installed: sudo pip -g install protobuf
 
 
