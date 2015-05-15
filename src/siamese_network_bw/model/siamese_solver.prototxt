@@ -18,9 +18,10 @@ power: 0.75
 display: 100
 # The maximum number of iterations
 #max_iter: 50000
-max_iter: 1500
+max_iter: 2000
 # snapshot intermediate results
+snapshot: 0
 #snapshot: 5000
-#snapshot_prefix: "src/siamese_network_bw/model/siamese"
+snapshot_prefix: "src/siamese_network_bw/model/snapshots/siamese"
 # solver mode: CPU or GPU
 solver_mode: GPU

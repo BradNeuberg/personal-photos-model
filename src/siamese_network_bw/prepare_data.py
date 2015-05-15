@@ -13,10 +13,13 @@ import leveldb
 
 from caffe_pb2 import Datum
 
-ROOT = "./src/siamese_network_bw/data/"
-TRAINING_FILE = ROOT + "siamese_network_train_leveldb"
-VALIDATION_FILE = ROOT + "siamese_network_validation_leveldb"
-TESTING_FILE = ROOT + "siamese_network_test_leveldb"
+import siamese_network_bw.siamese_utils as siamese_utils
+from siamese_network_bw.constants import (
+  ROOT,
+  TRAINING_FILE,
+  VALIDATION_FILE,
+  TESTING_FILE,
+)
 
 # By default there is a strange split between the training and validation sets;
 # the training set is 2200 images while the validation set is 6000 images. We'd rather
@@ -58,11 +61,11 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
   for idx, entry in enumerate(lfw_pairs["data"]):
     # Each image pair is a top level key with a keyname like 00059999, in increasing
     # order starting from 00000000.
-    key = "%08d" % (idx,)
+    key = siamese_utils.get_key(idx)
 
-    # Mean normalize the pixel vector.
-    entry -= np.mean(entry, axis=0)
-    entry *= (1.0/255.0)
+    # Mean normalize the pixel vector and make sure the target value is correct.
+    entry = siamese_utils.mean_normalize(entry)
+    label = siamese_utils.normalize_target(lfw_pairs["target"][idx])
 
     # Each entry in the leveldb is a Caffe protobuffer "Datum" object containing details.
     datum = Datum()
@@ -70,8 +73,11 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
     datum.channels = channels
     datum.height = height
     datum.width = width
-    datum.data = entry.tobytes()
-    datum.label = lfw_pairs["target"][idx]
+    # TODO(neuberg): This still doesn't work! I think I need to reshape it a bit
+    # according to https://github.com/BVLC/caffe/issues/745
+    # and serialize it into bytes correctly; perhaps use array_to_datum over in caffe.
+    datum.float_data.extend(entry.flat)
+    datum.label = label
     value = datum.SerializeToString()
     db.Put(key, value)
 
