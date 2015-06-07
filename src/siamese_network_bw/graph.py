@@ -37,8 +37,6 @@ def plot_results(training_details, validation_details):
     plt.savefig(constants.OUTPUT_GRAPH_PATH)
     print("\t\tGraph saved to %s" % constants.OUTPUT_GRAPH_PATH)
 
-    plt.show()
-
 def get_hyperparameter_details():
     """
     Parse out some of the values we need from the Caffe solver prototext file.
