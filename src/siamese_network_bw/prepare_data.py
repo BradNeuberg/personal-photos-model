@@ -13,7 +13,7 @@ import leveldb
 from caffe_pb2 import Datum
 
 import constants as constants
-import siamese_network_bw2.siamese_utils as siamese_utils
+import siamese_network_bw.siamese_utils as siamese_utils
 
 def prepare_data():
     print "Preparing data..."

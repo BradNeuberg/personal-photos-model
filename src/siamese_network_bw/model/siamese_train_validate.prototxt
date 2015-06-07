@@ -11,7 +11,7 @@ layer {
     scale: 1
   }
   data_param {
-    source: "src/siamese_network_bw2/data/siamese_network_train_leveldb"
+    source: "src/siamese_network_bw/data/siamese_network_train_leveldb"
     batch_size: 64
   }
 }
@@ -27,7 +27,7 @@ layer {
     scale: 1
   }
   data_param {
-    source: "src/siamese_network_bw2/data/siamese_network_validation_leveldb"
+    source: "src/siamese_network_bw/data/siamese_network_validation_leveldb"
     batch_size: 100
   }
 }

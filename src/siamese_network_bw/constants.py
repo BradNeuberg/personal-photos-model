@@ -17,7 +17,7 @@ def determine_output_ending():
 WIDTH = 47
 HEIGHT = 62
 
-ROOT_DIR = "./src/siamese_network_bw2"
+ROOT_DIR = "./src/siamese_network_bw"
 LOG_DIR = ROOT_DIR + "/logs"
 
 TRAINING_FILE = ROOT_DIR + "/data/siamese_network_train_leveldb"
