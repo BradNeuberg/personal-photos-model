@@ -5,3 +5,4 @@ src/siamese_network_bw/logs/*
 .lev_history
 *.pyc
 *.ipynb
+.DS_Store
