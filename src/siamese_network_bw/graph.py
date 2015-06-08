@@ -8,8 +8,7 @@ import constants
 
 def plot_results(training_details, validation_details):
     """
-    Generates a combined training/validation graph. The graph has two y axis on either side:
-    one for the training loss, and the other for the validation accuracy.
+    Generates a combined training/validation graph.
     """
     print "\tPlotting results..."
     fig, ax1 = plt.subplots()
@@ -20,18 +19,18 @@ def plot_results(training_details, validation_details):
         tl.set_color("b")
 
     ax2 = ax1.twinx()
-    ax2.plot(validation_details["iters"], validation_details["accuracy"], "r-")
-    ax2.set_ylabel("Validation Accuracy", color="r")
+    ax2.plot(validation_details["iters"], validation_details["loss"], "r-")
+    ax2.set_ylabel("Validation Loss", color="r")
     for tl in ax2.get_yticklabels():
         tl.set_color("r")
 
     legend_font = FontProperties()
     legend_font.set_size("small")
     blue_line = mpatches.Patch(color="blue", label="Training Loss")
-    red_line = mpatches.Patch(color="red", label="Validation Accuracy")
+    red_line = mpatches.Patch(color="red", label="Validation Loss")
     plt.legend(handles=[blue_line, red_line], prop=legend_font, loc="lower right")
 
-    plt.suptitle("Iterations vs. Training Loss/Validation Accuracy", fontsize=14)
+    plt.suptitle("Iterations vs. Training/Validation Loss", fontsize=14)
     plt.title(get_hyperparameter_details(), style="italic", fontsize=12)
 
     plt.savefig(constants.OUTPUT_GRAPH_PATH)

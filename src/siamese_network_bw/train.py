@@ -78,7 +78,7 @@ def parse_logs():
         training_loss.append(float(line[2]))
 
     validation_iters = []
-    validation_accuracy = []
+    validation_loss = []
     for line in csv.reader(open(constants.OUTPUT_LOG_PATH + ".validate"), delimiter=" ",
                             skipinitialspace=True):
         # Skip first line, which has column headers.
@@ -86,12 +86,15 @@ def parse_logs():
             continue
 
         validation_iters.append(int(line[0]))
-        validation_accuracy.append(float(line[2]))
+        # Note: In the logs the training loss is reported as training accuracy,
+        # but I believe this is a bug in the parse_log.sh script when interacting
+        # with the siamese network output.
+        validation_loss.append(float(line[2]))
 
     return ({
         "iters": training_iters,
         "loss": training_loss
     }, {
         "iters": validation_iters,
-        "accuracy": validation_accuracy
+        "loss": validation_loss
     })
