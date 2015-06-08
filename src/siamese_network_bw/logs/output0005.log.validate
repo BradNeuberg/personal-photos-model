@@ -1,0 +1,4 @@
+#Iters Seconds TestAccuracy TestLoss
+0     0.001499    450.914
+500   62.705813   0.24675
+1000  127.041248  0.24735

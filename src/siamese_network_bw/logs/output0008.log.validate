@@ -1,0 +1,5 @@
+#Iters Seconds TestAccuracy TestLoss
+0     0.000734    428.133
+500   63.028401   nan
+1000  125.380224  nan
+1500  188.014422  nan

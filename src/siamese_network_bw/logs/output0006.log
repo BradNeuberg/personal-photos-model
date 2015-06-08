@@ -1,0 +1,1321 @@
+I0607 21:32:19.612442 1956823808 caffe.cpp:113] Use GPU with device ID 0
+I0607 21:32:20.389755 1956823808 caffe.cpp:121] Starting Optimization
+I0607 21:32:20.389792 1956823808 solver.cpp:32] Initializing solver from parameters: 
+test_iter: 100
+test_interval: 500
+base_lr: 0.0001
+display: 100
+max_iter: 3000
+lr_policy: "inv"
+gamma: 0.0001
+power: 0.75
+momentum: 0.9
+weight_decay: 0
+snapshot: 0
+snapshot_prefix: "src/siamese_network_bw/model/snapshots/siamese"
+solver_mode: GPU
+net: "src/siamese_network_bw/model/siamese_train_validate.prototxt"
+I0607 21:32:20.389884 1956823808 solver.cpp:70] Creating training net from net file: src/siamese_network_bw/model/siamese_train_validate.prototxt
+I0607 21:32:20.390252 1956823808 net.cpp:287] The NetState phase (0) differed from the phase (1) specified by a rule in layer pair_data
+I0607 21:32:20.390296 1956823808 net.cpp:42] Initializing net from parameters: 
+name: "siamese_train_validate"
+state {
+  phase: TRAIN
+}
+layer {
+  name: "pair_data"
+  type: "Data"
+  top: "pair_data"
+  top: "sim"
+  include {
+    phase: TRAIN
+  }
+  transform_param {
+    scale: 1
+  }
+  data_param {
+    source: "src/siamese_network_bw/data/siamese_network_train_leveldb"
+    batch_size: 64
+  }
+}
+layer {
+  name: "slice_pair"
+  type: "Slice"
+  bottom: "pair_data"
+  top: "data"
+  top: "data_p"
+  slice_param {
+    slice_dim: 1
+    slice_point: 1
+  }
+}
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  param {
+    name: "conv1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv1_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 32
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    name: "conv2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv2_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 64
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv3"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3"
+  param {
+    name: "conv3_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv3_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 128
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool3"
+  type: "Pooling"
+  bottom: "conv3"
+  top: "pool3"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "ip1"
+  type: "InnerProduct"
+  bottom: "pool3"
+  top: "ip1"
+  param {
+    name: "ip1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip1_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "ip1"
+  top: "ip1"
+}
+layer {
+  name: "ip2"
+  type: "InnerProduct"
+  bottom: "ip1"
+  top: "ip2"
+  param {
+    name: "ip2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip2_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 10
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "feat"
+  type: "InnerProduct"
+  bottom: "ip2"
+  top: "feat"
+  param {
+    name: "feat_w"
+    lr_mult: 1
+  }
+  param {
+    name: "feat_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "conv1_p"
+  type: "Convolution"
+  bottom: "data_p"
+  top: "conv1_p"
+  param {
+    name: "conv1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv1_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 32
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool1_p"
+  type: "Pooling"
+  bottom: "conv1_p"
+  top: "pool1_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2_p"
+  type: "Convolution"
+  bottom: "pool1_p"
+  top: "conv2_p"
+  param {
+    name: "conv2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv2_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 64
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool2_p"
+  type: "Pooling"
+  bottom: "conv2_p"
+  top: "pool2_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv3_p"
+  type: "Convolution"
+  bottom: "pool2_p"
+  top: "conv3_p"
+  param {
+    name: "conv3_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv3_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 128
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool3_p"
+  type: "Pooling"
+  bottom: "conv3_p"
+  top: "pool3_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "ip1_p"
+  type: "InnerProduct"
+  bottom: "pool3_p"
+  top: "ip1_p"
+  param {
+    name: "ip1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip1_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu1_p"
+  type: "ReLU"
+  bottom: "ip1_p"
+  top: "ip1_p"
+}
+layer {
+  name: "ip2_p"
+  type: "InnerProduct"
+  bottom: "ip1_p"
+  top: "ip2_p"
+  param {
+    name: "ip2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip2_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 10
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "feat_p"
+  type: "InnerProduct"
+  bottom: "ip2_p"
+  top: "feat_p"
+  param {
+    name: "feat_w"
+    lr_mult: 1
+  }
+  param {
+    name: "feat_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "loss"
+  type: "ContrastiveLoss"
+  bottom: "feat"
+  bottom: "feat_p"
+  bottom: "sim"
+  top: "loss"
+  contrastive_loss_param {
+    margin: 1
+  }
+}
+I0607 21:32:20.390666 1956823808 layer_factory.hpp:74] Creating layer pair_data
+I0607 21:32:20.390684 1956823808 net.cpp:90] Creating Layer pair_data
+I0607 21:32:20.390691 1956823808 net.cpp:368] pair_data -> pair_data
+I0607 21:32:20.390708 1956823808 net.cpp:368] pair_data -> sim
+I0607 21:32:20.390717 1956823808 net.cpp:120] Setting up pair_data
+I0607 21:32:20.393136 1956823808 db.cpp:20] Opened leveldb src/siamese_network_bw/data/siamese_network_train_leveldb
+I0607 21:32:20.393456 1956823808 data_layer.cpp:52] output data size: 64,2,62,47
+I0607 21:32:20.394150 1956823808 net.cpp:127] Top shape: 64 2 62 47 (372992)
+I0607 21:32:20.394168 1956823808 net.cpp:127] Top shape: 64 (64)
+I0607 21:32:20.394176 1956823808 layer_factory.hpp:74] Creating layer slice_pair
+I0607 21:32:20.394186 1956823808 net.cpp:90] Creating Layer slice_pair
+I0607 21:32:20.394189 1956823808 net.cpp:410] slice_pair <- pair_data
+I0607 21:32:20.394197 1956823808 net.cpp:368] slice_pair -> data
+I0607 21:32:20.394207 1956823808 net.cpp:368] slice_pair -> data_p
+I0607 21:32:20.394212 1956823808 net.cpp:120] Setting up slice_pair
+I0607 21:32:20.394220 1956823808 net.cpp:127] Top shape: 64 1 62 47 (186496)
+I0607 21:32:20.394224 1956823808 net.cpp:127] Top shape: 64 1 62 47 (186496)
+I0607 21:32:20.394229 1956823808 layer_factory.hpp:74] Creating layer conv1
+I0607 21:32:20.394237 1956823808 net.cpp:90] Creating Layer conv1
+I0607 21:32:20.394239 1956823808 net.cpp:410] conv1 <- data
+I0607 21:32:20.394245 1956823808 net.cpp:368] conv1 -> conv1
+I0607 21:32:20.394251 1956823808 net.cpp:120] Setting up conv1
+I0607 21:32:20.451532 1956823808 net.cpp:127] Top shape: 64 32 60 45 (5529600)
+I0607 21:32:20.451571 1956823808 layer_factory.hpp:74] Creating layer pool1
+I0607 21:32:20.451622 1956823808 net.cpp:90] Creating Layer pool1
+I0607 21:32:20.451632 1956823808 net.cpp:410] pool1 <- conv1
+I0607 21:32:20.451642 1956823808 net.cpp:368] pool1 -> pool1
+I0607 21:32:20.451653 1956823808 net.cpp:120] Setting up pool1
+I0607 21:32:20.451839 1956823808 net.cpp:127] Top shape: 64 32 30 23 (1413120)
+I0607 21:32:20.451856 1956823808 layer_factory.hpp:74] Creating layer conv2
+I0607 21:32:20.451871 1956823808 net.cpp:90] Creating Layer conv2
+I0607 21:32:20.451879 1956823808 net.cpp:410] conv2 <- pool1
+I0607 21:32:20.451891 1956823808 net.cpp:368] conv2 -> conv2
+I0607 21:32:20.451928 1956823808 net.cpp:120] Setting up conv2
+I0607 21:32:20.452410 1956823808 net.cpp:127] Top shape: 64 64 29 22 (2613248)
+I0607 21:32:20.452430 1956823808 layer_factory.hpp:74] Creating layer pool2
+I0607 21:32:20.452437 1956823808 net.cpp:90] Creating Layer pool2
+I0607 21:32:20.452441 1956823808 net.cpp:410] pool2 <- conv2
+I0607 21:32:20.452450 1956823808 net.cpp:368] pool2 -> pool2
+I0607 21:32:20.452457 1956823808 net.cpp:120] Setting up pool2
+I0607 21:32:20.452515 1956823808 net.cpp:127] Top shape: 64 64 15 11 (675840)
+I0607 21:32:20.452522 1956823808 layer_factory.hpp:74] Creating layer conv3
+I0607 21:32:20.452528 1956823808 net.cpp:90] Creating Layer conv3
+I0607 21:32:20.452535 1956823808 net.cpp:410] conv3 <- pool2
+I0607 21:32:20.452546 1956823808 net.cpp:368] conv3 -> conv3
+I0607 21:32:20.452563 1956823808 net.cpp:120] Setting up conv3
+I0607 21:32:20.453354 1956823808 net.cpp:127] Top shape: 64 128 14 10 (1146880)
+I0607 21:32:20.453372 1956823808 layer_factory.hpp:74] Creating layer pool3
+I0607 21:32:20.453380 1956823808 net.cpp:90] Creating Layer pool3
+I0607 21:32:20.453384 1956823808 net.cpp:410] pool3 <- conv3
+I0607 21:32:20.453390 1956823808 net.cpp:368] pool3 -> pool3
+I0607 21:32:20.453397 1956823808 net.cpp:120] Setting up pool3
+I0607 21:32:20.453454 1956823808 net.cpp:127] Top shape: 64 128 7 5 (286720)
+I0607 21:32:20.453461 1956823808 layer_factory.hpp:74] Creating layer ip1
+I0607 21:32:20.453470 1956823808 net.cpp:90] Creating Layer ip1
+I0607 21:32:20.453474 1956823808 net.cpp:410] ip1 <- pool3
+I0607 21:32:20.453480 1956823808 net.cpp:368] ip1 -> ip1
+I0607 21:32:20.453522 1956823808 net.cpp:120] Setting up ip1
+I0607 21:32:20.472307 1956823808 net.cpp:127] Top shape: 64 500 (32000)
+I0607 21:32:20.472329 1956823808 layer_factory.hpp:74] Creating layer relu1
+I0607 21:32:20.472340 1956823808 net.cpp:90] Creating Layer relu1
+I0607 21:32:20.472344 1956823808 net.cpp:410] relu1 <- ip1
+I0607 21:32:20.472350 1956823808 net.cpp:357] relu1 -> ip1 (in-place)
+I0607 21:32:20.472357 1956823808 net.cpp:120] Setting up relu1
+I0607 21:32:20.472530 1956823808 net.cpp:127] Top shape: 64 500 (32000)
+I0607 21:32:20.472544 1956823808 layer_factory.hpp:74] Creating layer ip2
+I0607 21:32:20.472556 1956823808 net.cpp:90] Creating Layer ip2
+I0607 21:32:20.472563 1956823808 net.cpp:410] ip2 <- ip1
+I0607 21:32:20.472576 1956823808 net.cpp:368] ip2 -> ip2
+I0607 21:32:20.472584 1956823808 net.cpp:120] Setting up ip2
+I0607 21:32:20.472651 1956823808 net.cpp:127] Top shape: 64 10 (640)
+I0607 21:32:20.472667 1956823808 layer_factory.hpp:74] Creating layer feat
+I0607 21:32:20.472679 1956823808 net.cpp:90] Creating Layer feat
+I0607 21:32:20.472687 1956823808 net.cpp:410] feat <- ip2
+I0607 21:32:20.472699 1956823808 net.cpp:368] feat -> feat
+I0607 21:32:20.472712 1956823808 net.cpp:120] Setting up feat
+I0607 21:32:20.472728 1956823808 net.cpp:127] Top shape: 64 2 (128)
+I0607 21:32:20.472738 1956823808 layer_factory.hpp:74] Creating layer conv1_p
+I0607 21:32:20.472748 1956823808 net.cpp:90] Creating Layer conv1_p
+I0607 21:32:20.472755 1956823808 net.cpp:410] conv1_p <- data_p
+I0607 21:32:20.472764 1956823808 net.cpp:368] conv1_p -> conv1_p
+I0607 21:32:20.472776 1956823808 net.cpp:120] Setting up conv1_p
+I0607 21:32:20.473091 1956823808 net.cpp:127] Top shape: 64 32 60 45 (5529600)
+I0607 21:32:20.473104 1956823808 net.cpp:459] Sharing parameters 'conv1_w' owned by layer 'conv1', param index 0
+I0607 21:32:20.473143 1956823808 net.cpp:459] Sharing parameters 'conv1_b' owned by layer 'conv1', param index 1
+I0607 21:32:20.473155 1956823808 layer_factory.hpp:74] Creating layer pool1_p
+I0607 21:32:20.473165 1956823808 net.cpp:90] Creating Layer pool1_p
+I0607 21:32:20.473204 1956823808 net.cpp:410] pool1_p <- conv1_p
+I0607 21:32:20.473248 1956823808 net.cpp:368] pool1_p -> pool1_p
+I0607 21:32:20.473273 1956823808 net.cpp:120] Setting up pool1_p
+I0607 21:32:20.473366 1956823808 net.cpp:127] Top shape: 64 32 30 23 (1413120)
+I0607 21:32:20.473381 1956823808 layer_factory.hpp:74] Creating layer conv2_p
+I0607 21:32:20.473402 1956823808 net.cpp:90] Creating Layer conv2_p
+I0607 21:32:20.473414 1956823808 net.cpp:410] conv2_p <- pool1_p
+I0607 21:32:20.473426 1956823808 net.cpp:368] conv2_p -> conv2_p
+I0607 21:32:20.473459 1956823808 net.cpp:120] Setting up conv2_p
+I0607 21:32:20.474066 1956823808 net.cpp:127] Top shape: 64 64 29 22 (2613248)
+I0607 21:32:20.474078 1956823808 net.cpp:459] Sharing parameters 'conv2_w' owned by layer 'conv2', param index 0
+I0607 21:32:20.474104 1956823808 net.cpp:459] Sharing parameters 'conv2_b' owned by layer 'conv2', param index 1
+I0607 21:32:20.474114 1956823808 layer_factory.hpp:74] Creating layer pool2_p
+I0607 21:32:20.474127 1956823808 net.cpp:90] Creating Layer pool2_p
+I0607 21:32:20.474134 1956823808 net.cpp:410] pool2_p <- conv2_p
+I0607 21:32:20.474172 1956823808 net.cpp:368] pool2_p -> pool2_p
+I0607 21:32:20.474185 1956823808 net.cpp:120] Setting up pool2_p
+I0607 21:32:20.474251 1956823808 net.cpp:127] Top shape: 64 64 15 11 (675840)
+I0607 21:32:20.474257 1956823808 layer_factory.hpp:74] Creating layer conv3_p
+I0607 21:32:20.474304 1956823808 net.cpp:90] Creating Layer conv3_p
+I0607 21:32:20.474315 1956823808 net.cpp:410] conv3_p <- pool2_p
+I0607 21:32:20.474329 1956823808 net.cpp:368] conv3_p -> conv3_p
+I0607 21:32:20.474344 1956823808 net.cpp:120] Setting up conv3_p
+I0607 21:32:20.475086 1956823808 net.cpp:127] Top shape: 64 128 14 10 (1146880)
+I0607 21:32:20.475108 1956823808 net.cpp:459] Sharing parameters 'conv3_w' owned by layer 'conv3', param index 0
+I0607 21:32:20.475129 1956823808 net.cpp:459] Sharing parameters 'conv3_b' owned by layer 'conv3', param index 1
+I0607 21:32:20.475144 1956823808 layer_factory.hpp:74] Creating layer pool3_p
+I0607 21:32:20.475153 1956823808 net.cpp:90] Creating Layer pool3_p
+I0607 21:32:20.475167 1956823808 net.cpp:410] pool3_p <- conv3_p
+I0607 21:32:20.475181 1956823808 net.cpp:368] pool3_p -> pool3_p
+I0607 21:32:20.475199 1956823808 net.cpp:120] Setting up pool3_p
+I0607 21:32:20.475282 1956823808 net.cpp:127] Top shape: 64 128 7 5 (286720)
+I0607 21:32:20.475298 1956823808 layer_factory.hpp:74] Creating layer ip1_p
+I0607 21:32:20.475316 1956823808 net.cpp:90] Creating Layer ip1_p
+I0607 21:32:20.475322 1956823808 net.cpp:410] ip1_p <- pool3_p
+I0607 21:32:20.475333 1956823808 net.cpp:368] ip1_p -> ip1_p
+I0607 21:32:20.475345 1956823808 net.cpp:120] Setting up ip1_p
+I0607 21:32:20.495286 1956823808 net.cpp:127] Top shape: 64 500 (32000)
+I0607 21:32:20.495309 1956823808 net.cpp:459] Sharing parameters 'ip1_w' owned by layer 'ip1', param index 0
+I0607 21:32:20.495319 1956823808 net.cpp:459] Sharing parameters 'ip1_b' owned by layer 'ip1', param index 1
+I0607 21:32:20.495326 1956823808 layer_factory.hpp:74] Creating layer relu1_p
+I0607 21:32:20.495333 1956823808 net.cpp:90] Creating Layer relu1_p
+I0607 21:32:20.495338 1956823808 net.cpp:410] relu1_p <- ip1_p
+I0607 21:32:20.495404 1956823808 net.cpp:357] relu1_p -> ip1_p (in-place)
+I0607 21:32:20.495416 1956823808 net.cpp:120] Setting up relu1_p
+I0607 21:32:20.495616 1956823808 net.cpp:127] Top shape: 64 500 (32000)
+I0607 21:32:20.495631 1956823808 layer_factory.hpp:74] Creating layer ip2_p
+I0607 21:32:20.495642 1956823808 net.cpp:90] Creating Layer ip2_p
+I0607 21:32:20.495647 1956823808 net.cpp:410] ip2_p <- ip1_p
+I0607 21:32:20.495653 1956823808 net.cpp:368] ip2_p -> ip2_p
+I0607 21:32:20.495661 1956823808 net.cpp:120] Setting up ip2_p
+I0607 21:32:20.495724 1956823808 net.cpp:127] Top shape: 64 10 (640)
+I0607 21:32:20.495750 1956823808 net.cpp:459] Sharing parameters 'ip2_w' owned by layer 'ip2', param index 0
+I0607 21:32:20.495756 1956823808 net.cpp:459] Sharing parameters 'ip2_b' owned by layer 'ip2', param index 1
+I0607 21:32:20.495761 1956823808 layer_factory.hpp:74] Creating layer feat_p
+I0607 21:32:20.495769 1956823808 net.cpp:90] Creating Layer feat_p
+I0607 21:32:20.495774 1956823808 net.cpp:410] feat_p <- ip2_p
+I0607 21:32:20.495779 1956823808 net.cpp:368] feat_p -> feat_p
+I0607 21:32:20.495785 1956823808 net.cpp:120] Setting up feat_p
+I0607 21:32:20.495797 1956823808 net.cpp:127] Top shape: 64 2 (128)
+I0607 21:32:20.495806 1956823808 net.cpp:459] Sharing parameters 'feat_w' owned by layer 'feat', param index 0
+I0607 21:32:20.495813 1956823808 net.cpp:459] Sharing parameters 'feat_b' owned by layer 'feat', param index 1
+I0607 21:32:20.495820 1956823808 layer_factory.hpp:74] Creating layer loss
+I0607 21:32:20.495833 1956823808 net.cpp:90] Creating Layer loss
+I0607 21:32:20.495841 1956823808 net.cpp:410] loss <- feat
+I0607 21:32:20.495848 1956823808 net.cpp:410] loss <- feat_p
+I0607 21:32:20.495854 1956823808 net.cpp:410] loss <- sim
+I0607 21:32:20.495864 1956823808 net.cpp:368] loss -> loss
+I0607 21:32:20.495883 1956823808 net.cpp:120] Setting up loss
+I0607 21:32:20.495899 1956823808 net.cpp:127] Top shape: (1)
+I0607 21:32:20.495906 1956823808 net.cpp:129]     with loss weight 1
+I0607 21:32:20.495921 1956823808 net.cpp:192] loss needs backward computation.
+I0607 21:32:20.495929 1956823808 net.cpp:192] feat_p needs backward computation.
+I0607 21:32:20.495942 1956823808 net.cpp:192] ip2_p needs backward computation.
+I0607 21:32:20.495950 1956823808 net.cpp:192] relu1_p needs backward computation.
+I0607 21:32:20.495957 1956823808 net.cpp:192] ip1_p needs backward computation.
+I0607 21:32:20.495964 1956823808 net.cpp:192] pool3_p needs backward computation.
+I0607 21:32:20.495970 1956823808 net.cpp:192] conv3_p needs backward computation.
+I0607 21:32:20.495976 1956823808 net.cpp:192] pool2_p needs backward computation.
+I0607 21:32:20.495982 1956823808 net.cpp:192] conv2_p needs backward computation.
+I0607 21:32:20.495990 1956823808 net.cpp:192] pool1_p needs backward computation.
+I0607 21:32:20.495996 1956823808 net.cpp:192] conv1_p needs backward computation.
+I0607 21:32:20.496009 1956823808 net.cpp:192] feat needs backward computation.
+I0607 21:32:20.496026 1956823808 net.cpp:192] ip2 needs backward computation.
+I0607 21:32:20.496033 1956823808 net.cpp:192] relu1 needs backward computation.
+I0607 21:32:20.496039 1956823808 net.cpp:192] ip1 needs backward computation.
+I0607 21:32:20.496047 1956823808 net.cpp:192] pool3 needs backward computation.
+I0607 21:32:20.496052 1956823808 net.cpp:192] conv3 needs backward computation.
+I0607 21:32:20.496058 1956823808 net.cpp:192] pool2 needs backward computation.
+I0607 21:32:20.496065 1956823808 net.cpp:192] conv2 needs backward computation.
+I0607 21:32:20.496072 1956823808 net.cpp:192] pool1 needs backward computation.
+I0607 21:32:20.496078 1956823808 net.cpp:192] conv1 needs backward computation.
+I0607 21:32:20.496085 1956823808 net.cpp:194] slice_pair does not need backward computation.
+I0607 21:32:20.496093 1956823808 net.cpp:194] pair_data does not need backward computation.
+I0607 21:32:20.496098 1956823808 net.cpp:235] This network produces output loss
+I0607 21:32:20.496119 1956823808 net.cpp:482] Collecting Learning Rate and Weight Decay.
+I0607 21:32:20.496129 1956823808 net.cpp:247] Network initialization done.
+I0607 21:32:20.496135 1956823808 net.cpp:248] Memory required for data: 96825604
+I0607 21:32:20.496747 1956823808 solver.cpp:154] Creating test net (#0) specified by net file: src/siamese_network_bw/model/siamese_train_validate.prototxt
+I0607 21:32:20.496827 1956823808 net.cpp:287] The NetState phase (1) differed from the phase (0) specified by a rule in layer pair_data
+I0607 21:32:20.496870 1956823808 net.cpp:42] Initializing net from parameters: 
+name: "siamese_train_validate"
+state {
+  phase: TEST
+}
+layer {
+  name: "pair_data"
+  type: "Data"
+  top: "pair_data"
+  top: "sim"
+  include {
+    phase: TEST
+  }
+  transform_param {
+    scale: 1
+  }
+  data_param {
+    source: "src/siamese_network_bw/data/siamese_network_validation_leveldb"
+    batch_size: 100
+  }
+}
+layer {
+  name: "slice_pair"
+  type: "Slice"
+  bottom: "pair_data"
+  top: "data"
+  top: "data_p"
+  slice_param {
+    slice_dim: 1
+    slice_point: 1
+  }
+}
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv1"
+  param {
+    name: "conv1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv1_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 32
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    name: "conv2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv2_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 64
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv3"
+  type: "Convolution"
+  bottom: "pool2"
+  top: "conv3"
+  param {
+    name: "conv3_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv3_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 128
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool3"
+  type: "Pooling"
+  bottom: "conv3"
+  top: "pool3"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "ip1"
+  type: "InnerProduct"
+  bottom: "pool3"
+  top: "ip1"
+  param {
+    name: "ip1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip1_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "ip1"
+  top: "ip1"
+}
+layer {
+  name: "ip2"
+  type: "InnerProduct"
+  bottom: "ip1"
+  top: "ip2"
+  param {
+    name: "ip2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip2_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 10
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "feat"
+  type: "InnerProduct"
+  bottom: "ip2"
+  top: "feat"
+  param {
+    name: "feat_w"
+    lr_mult: 1
+  }
+  param {
+    name: "feat_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "conv1_p"
+  type: "Convolution"
+  bottom: "data_p"
+  top: "conv1_p"
+  param {
+    name: "conv1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv1_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 32
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool1_p"
+  type: "Pooling"
+  bottom: "conv1_p"
+  top: "pool1_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2_p"
+  type: "Convolution"
+  bottom: "pool1_p"
+  top: "conv2_p"
+  param {
+    name: "conv2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv2_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 64
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool2_p"
+  type: "Pooling"
+  bottom: "conv2_p"
+  top: "pool2_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv3_p"
+  type: "Convolution"
+  bottom: "pool2_p"
+  top: "conv3_p"
+  param {
+    name: "conv3_w"
+    lr_mult: 1
+  }
+  param {
+    name: "conv3_b"
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 128
+    kernel_size: 2
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool3_p"
+  type: "Pooling"
+  bottom: "conv3_p"
+  top: "pool3_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "ip1_p"
+  type: "InnerProduct"
+  bottom: "pool3_p"
+  top: "ip1_p"
+  param {
+    name: "ip1_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip1_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu1_p"
+  type: "ReLU"
+  bottom: "ip1_p"
+  top: "ip1_p"
+}
+layer {
+  name: "ip2_p"
+  type: "InnerProduct"
+  bottom: "ip1_p"
+  top: "ip2_p"
+  param {
+    name: "ip2_w"
+    lr_mult: 1
+  }
+  param {
+    name: "ip2_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 10
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "feat_p"
+  type: "InnerProduct"
+  bottom: "ip2_p"
+  top: "feat_p"
+  param {
+    name: "feat_w"
+    lr_mult: 1
+  }
+  param {
+    name: "feat_b"
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "loss"
+  type: "ContrastiveLoss"
+  bottom: "feat"
+  bottom: "feat_p"
+  bottom: "sim"
+  top: "loss"
+  contrastive_loss_param {
+    margin: 1
+  }
+}
+I0607 21:32:20.497383 1956823808 layer_factory.hpp:74] Creating layer pair_data
+I0607 21:32:20.497414 1956823808 net.cpp:90] Creating Layer pair_data
+I0607 21:32:20.497433 1956823808 net.cpp:368] pair_data -> pair_data
+I0607 21:32:20.497452 1956823808 net.cpp:368] pair_data -> sim
+I0607 21:32:20.497463 1956823808 net.cpp:120] Setting up pair_data
+I0607 21:32:20.499681 1956823808 db.cpp:20] Opened leveldb src/siamese_network_bw/data/siamese_network_validation_leveldb
+I0607 21:32:20.499902 1956823808 data_layer.cpp:52] output data size: 100,2,62,47
+I0607 21:32:20.501020 1956823808 net.cpp:127] Top shape: 100 2 62 47 (582800)
+I0607 21:32:20.501034 1956823808 net.cpp:127] Top shape: 100 (100)
+I0607 21:32:20.501041 1956823808 layer_factory.hpp:74] Creating layer slice_pair
+I0607 21:32:20.501055 1956823808 net.cpp:90] Creating Layer slice_pair
+I0607 21:32:20.501062 1956823808 net.cpp:410] slice_pair <- pair_data
+I0607 21:32:20.501067 1956823808 net.cpp:368] slice_pair -> data
+I0607 21:32:20.501076 1956823808 net.cpp:368] slice_pair -> data_p
+I0607 21:32:20.501081 1956823808 net.cpp:120] Setting up slice_pair
+I0607 21:32:20.501087 1956823808 net.cpp:127] Top shape: 100 1 62 47 (291400)
+I0607 21:32:20.501092 1956823808 net.cpp:127] Top shape: 100 1 62 47 (291400)
+I0607 21:32:20.501096 1956823808 layer_factory.hpp:74] Creating layer conv1
+I0607 21:32:20.501103 1956823808 net.cpp:90] Creating Layer conv1
+I0607 21:32:20.501107 1956823808 net.cpp:410] conv1 <- data
+I0607 21:32:20.501112 1956823808 net.cpp:368] conv1 -> conv1
+I0607 21:32:20.501118 1956823808 net.cpp:120] Setting up conv1
+I0607 21:32:20.501368 1956823808 net.cpp:127] Top shape: 100 32 60 45 (8640000)
+I0607 21:32:20.501379 1956823808 layer_factory.hpp:74] Creating layer pool1
+I0607 21:32:20.501385 1956823808 net.cpp:90] Creating Layer pool1
+I0607 21:32:20.501389 1956823808 net.cpp:410] pool1 <- conv1
+I0607 21:32:20.501395 1956823808 net.cpp:368] pool1 -> pool1
+I0607 21:32:20.501401 1956823808 net.cpp:120] Setting up pool1
+I0607 21:32:20.501444 1956823808 net.cpp:127] Top shape: 100 32 30 23 (2208000)
+I0607 21:32:20.501451 1956823808 layer_factory.hpp:74] Creating layer conv2
+I0607 21:32:20.501456 1956823808 net.cpp:90] Creating Layer conv2
+I0607 21:32:20.501461 1956823808 net.cpp:410] conv2 <- pool1
+I0607 21:32:20.501466 1956823808 net.cpp:368] conv2 -> conv2
+I0607 21:32:20.501473 1956823808 net.cpp:120] Setting up conv2
+I0607 21:32:20.501811 1956823808 net.cpp:127] Top shape: 100 64 29 22 (4083200)
+I0607 21:32:20.501824 1956823808 layer_factory.hpp:74] Creating layer pool2
+I0607 21:32:20.501830 1956823808 net.cpp:90] Creating Layer pool2
+I0607 21:32:20.501848 1956823808 net.cpp:410] pool2 <- conv2
+I0607 21:32:20.501854 1956823808 net.cpp:368] pool2 -> pool2
+I0607 21:32:20.501862 1956823808 net.cpp:120] Setting up pool2
+I0607 21:32:20.501904 1956823808 net.cpp:127] Top shape: 100 64 15 11 (1056000)
+I0607 21:32:20.501909 1956823808 layer_factory.hpp:74] Creating layer conv3
+I0607 21:32:20.501916 1956823808 net.cpp:90] Creating Layer conv3
+I0607 21:32:20.501920 1956823808 net.cpp:410] conv3 <- pool2
+I0607 21:32:20.501925 1956823808 net.cpp:368] conv3 -> conv3
+I0607 21:32:20.501932 1956823808 net.cpp:120] Setting up conv3
+I0607 21:32:20.503144 1956823808 net.cpp:127] Top shape: 100 128 14 10 (1792000)
+I0607 21:32:20.503164 1956823808 layer_factory.hpp:74] Creating layer pool3
+I0607 21:32:20.503170 1956823808 net.cpp:90] Creating Layer pool3
+I0607 21:32:20.503175 1956823808 net.cpp:410] pool3 <- conv3
+I0607 21:32:20.503180 1956823808 net.cpp:368] pool3 -> pool3
+I0607 21:32:20.503186 1956823808 net.cpp:120] Setting up pool3
+I0607 21:32:20.503233 1956823808 net.cpp:127] Top shape: 100 128 7 5 (448000)
+I0607 21:32:20.503239 1956823808 layer_factory.hpp:74] Creating layer ip1
+I0607 21:32:20.503248 1956823808 net.cpp:90] Creating Layer ip1
+I0607 21:32:20.503252 1956823808 net.cpp:410] ip1 <- pool3
+I0607 21:32:20.503257 1956823808 net.cpp:368] ip1 -> ip1
+I0607 21:32:20.503263 1956823808 net.cpp:120] Setting up ip1
+I0607 21:32:20.519366 1956823808 net.cpp:127] Top shape: 100 500 (50000)
+I0607 21:32:20.519386 1956823808 layer_factory.hpp:74] Creating layer relu1
+I0607 21:32:20.519393 1956823808 net.cpp:90] Creating Layer relu1
+I0607 21:32:20.519398 1956823808 net.cpp:410] relu1 <- ip1
+I0607 21:32:20.519404 1956823808 net.cpp:357] relu1 -> ip1 (in-place)
+I0607 21:32:20.519470 1956823808 net.cpp:120] Setting up relu1
+I0607 21:32:20.519683 1956823808 net.cpp:127] Top shape: 100 500 (50000)
+I0607 21:32:20.519698 1956823808 layer_factory.hpp:74] Creating layer ip2
+I0607 21:32:20.519711 1956823808 net.cpp:90] Creating Layer ip2
+I0607 21:32:20.519716 1956823808 net.cpp:410] ip2 <- ip1
+I0607 21:32:20.519723 1956823808 net.cpp:368] ip2 -> ip2
+I0607 21:32:20.519731 1956823808 net.cpp:120] Setting up ip2
+I0607 21:32:20.519798 1956823808 net.cpp:127] Top shape: 100 10 (1000)
+I0607 21:32:20.519812 1956823808 layer_factory.hpp:74] Creating layer feat
+I0607 21:32:20.519858 1956823808 net.cpp:90] Creating Layer feat
+I0607 21:32:20.519870 1956823808 net.cpp:410] feat <- ip2
+I0607 21:32:20.519877 1956823808 net.cpp:368] feat -> feat
+I0607 21:32:20.519886 1956823808 net.cpp:120] Setting up feat
+I0607 21:32:20.519899 1956823808 net.cpp:127] Top shape: 100 2 (200)
+I0607 21:32:20.519911 1956823808 layer_factory.hpp:74] Creating layer conv1_p
+I0607 21:32:20.519947 1956823808 net.cpp:90] Creating Layer conv1_p
+I0607 21:32:20.519956 1956823808 net.cpp:410] conv1_p <- data_p
+I0607 21:32:20.519969 1956823808 net.cpp:368] conv1_p -> conv1_p
+I0607 21:32:20.519978 1956823808 net.cpp:120] Setting up conv1_p
+I0607 21:32:20.520328 1956823808 net.cpp:127] Top shape: 100 32 60 45 (8640000)
+I0607 21:32:20.520339 1956823808 net.cpp:459] Sharing parameters 'conv1_w' owned by layer 'conv1', param index 0
+I0607 21:32:20.520345 1956823808 net.cpp:459] Sharing parameters 'conv1_b' owned by layer 'conv1', param index 1
+I0607 21:32:20.520351 1956823808 layer_factory.hpp:74] Creating layer pool1_p
+I0607 21:32:20.520361 1956823808 net.cpp:90] Creating Layer pool1_p
+I0607 21:32:20.520369 1956823808 net.cpp:410] pool1_p <- conv1_p
+I0607 21:32:20.520377 1956823808 net.cpp:368] pool1_p -> pool1_p
+I0607 21:32:20.520387 1956823808 net.cpp:120] Setting up pool1_p
+I0607 21:32:20.520488 1956823808 net.cpp:127] Top shape: 100 32 30 23 (2208000)
+I0607 21:32:20.520499 1956823808 layer_factory.hpp:74] Creating layer conv2_p
+I0607 21:32:20.520509 1956823808 net.cpp:90] Creating Layer conv2_p
+I0607 21:32:20.520515 1956823808 net.cpp:410] conv2_p <- pool1_p
+I0607 21:32:20.520560 1956823808 net.cpp:368] conv2_p -> conv2_p
+I0607 21:32:20.520575 1956823808 net.cpp:120] Setting up conv2_p
+I0607 21:32:20.520943 1956823808 net.cpp:127] Top shape: 100 64 29 22 (4083200)
+I0607 21:32:20.520956 1956823808 net.cpp:459] Sharing parameters 'conv2_w' owned by layer 'conv2', param index 0
+I0607 21:32:20.520962 1956823808 net.cpp:459] Sharing parameters 'conv2_b' owned by layer 'conv2', param index 1
+I0607 21:32:20.520967 1956823808 layer_factory.hpp:74] Creating layer pool2_p
+I0607 21:32:20.520973 1956823808 net.cpp:90] Creating Layer pool2_p
+I0607 21:32:20.520977 1956823808 net.cpp:410] pool2_p <- conv2_p
+I0607 21:32:20.520984 1956823808 net.cpp:368] pool2_p -> pool2_p
+I0607 21:32:20.520992 1956823808 net.cpp:120] Setting up pool2_p
+I0607 21:32:20.521041 1956823808 net.cpp:127] Top shape: 100 64 15 11 (1056000)
+I0607 21:32:20.521047 1956823808 layer_factory.hpp:74] Creating layer conv3_p
+I0607 21:32:20.521055 1956823808 net.cpp:90] Creating Layer conv3_p
+I0607 21:32:20.521059 1956823808 net.cpp:410] conv3_p <- pool2_p
+I0607 21:32:20.521066 1956823808 net.cpp:368] conv3_p -> conv3_p
+I0607 21:32:20.521073 1956823808 net.cpp:120] Setting up conv3_p
+I0607 21:32:20.521678 1956823808 net.cpp:127] Top shape: 100 128 14 10 (1792000)
+I0607 21:32:20.521694 1956823808 net.cpp:459] Sharing parameters 'conv3_w' owned by layer 'conv3', param index 0
+I0607 21:32:20.521706 1956823808 net.cpp:459] Sharing parameters 'conv3_b' owned by layer 'conv3', param index 1
+I0607 21:32:20.521713 1956823808 layer_factory.hpp:74] Creating layer pool3_p
+I0607 21:32:20.521730 1956823808 net.cpp:90] Creating Layer pool3_p
+I0607 21:32:20.521738 1956823808 net.cpp:410] pool3_p <- conv3_p
+I0607 21:32:20.521750 1956823808 net.cpp:368] pool3_p -> pool3_p
+I0607 21:32:20.521760 1956823808 net.cpp:120] Setting up pool3_p
+I0607 21:32:20.521849 1956823808 net.cpp:127] Top shape: 100 128 7 5 (448000)
+I0607 21:32:20.521862 1956823808 layer_factory.hpp:74] Creating layer ip1_p
+I0607 21:32:20.521869 1956823808 net.cpp:90] Creating Layer ip1_p
+I0607 21:32:20.521890 1956823808 net.cpp:410] ip1_p <- pool3_p
+I0607 21:32:20.521905 1956823808 net.cpp:368] ip1_p -> ip1_p
+I0607 21:32:20.521914 1956823808 net.cpp:120] Setting up ip1_p
+I0607 21:32:20.541785 1956823808 net.cpp:127] Top shape: 100 500 (50000)
+I0607 21:32:20.541824 1956823808 net.cpp:459] Sharing parameters 'ip1_w' owned by layer 'ip1', param index 0
+I0607 21:32:20.541846 1956823808 net.cpp:459] Sharing parameters 'ip1_b' owned by layer 'ip1', param index 1
+I0607 21:32:20.541867 1956823808 layer_factory.hpp:74] Creating layer relu1_p
+I0607 21:32:20.541893 1956823808 net.cpp:90] Creating Layer relu1_p
+I0607 21:32:20.541905 1956823808 net.cpp:410] relu1_p <- ip1_p
+I0607 21:32:20.541932 1956823808 net.cpp:357] relu1_p -> ip1_p (in-place)
+I0607 21:32:20.541972 1956823808 net.cpp:120] Setting up relu1_p
+I0607 21:32:20.542223 1956823808 net.cpp:127] Top shape: 100 500 (50000)
+I0607 21:32:20.542238 1956823808 layer_factory.hpp:74] Creating layer ip2_p
+I0607 21:32:20.542254 1956823808 net.cpp:90] Creating Layer ip2_p
+I0607 21:32:20.542260 1956823808 net.cpp:410] ip2_p <- ip1_p
+I0607 21:32:20.542268 1956823808 net.cpp:368] ip2_p -> ip2_p
+I0607 21:32:20.542276 1956823808 net.cpp:120] Setting up ip2_p
+I0607 21:32:20.542381 1956823808 net.cpp:127] Top shape: 100 10 (1000)
+I0607 21:32:20.542393 1956823808 net.cpp:459] Sharing parameters 'ip2_w' owned by layer 'ip2', param index 0
+I0607 21:32:20.542403 1956823808 net.cpp:459] Sharing parameters 'ip2_b' owned by layer 'ip2', param index 1
+I0607 21:32:20.542412 1956823808 layer_factory.hpp:74] Creating layer feat_p
+I0607 21:32:20.542419 1956823808 net.cpp:90] Creating Layer feat_p
+I0607 21:32:20.542423 1956823808 net.cpp:410] feat_p <- ip2_p
+I0607 21:32:20.542433 1956823808 net.cpp:368] feat_p -> feat_p
+I0607 21:32:20.542438 1956823808 net.cpp:120] Setting up feat_p
+I0607 21:32:20.542448 1956823808 net.cpp:127] Top shape: 100 2 (200)
+I0607 21:32:20.542454 1956823808 net.cpp:459] Sharing parameters 'feat_w' owned by layer 'feat', param index 0
+I0607 21:32:20.542459 1956823808 net.cpp:459] Sharing parameters 'feat_b' owned by layer 'feat', param index 1
+I0607 21:32:20.542462 1956823808 layer_factory.hpp:74] Creating layer loss
+I0607 21:32:20.542493 1956823808 net.cpp:90] Creating Layer loss
+I0607 21:32:20.542497 1956823808 net.cpp:410] loss <- feat
+I0607 21:32:20.542502 1956823808 net.cpp:410] loss <- feat_p
+I0607 21:32:20.542506 1956823808 net.cpp:410] loss <- sim
+I0607 21:32:20.542512 1956823808 net.cpp:368] loss -> loss
+I0607 21:32:20.542518 1956823808 net.cpp:120] Setting up loss
+I0607 21:32:20.542526 1956823808 net.cpp:127] Top shape: (1)
+I0607 21:32:20.542531 1956823808 net.cpp:129]     with loss weight 1
+I0607 21:32:20.542541 1956823808 net.cpp:192] loss needs backward computation.
+I0607 21:32:20.542547 1956823808 net.cpp:192] feat_p needs backward computation.
+I0607 21:32:20.542587 1956823808 net.cpp:192] ip2_p needs backward computation.
+I0607 21:32:20.542601 1956823808 net.cpp:192] relu1_p needs backward computation.
+I0607 21:32:20.542620 1956823808 net.cpp:192] ip1_p needs backward computation.
+I0607 21:32:20.542629 1956823808 net.cpp:192] pool3_p needs backward computation.
+I0607 21:32:20.542634 1956823808 net.cpp:192] conv3_p needs backward computation.
+I0607 21:32:20.542637 1956823808 net.cpp:192] pool2_p needs backward computation.
+I0607 21:32:20.542641 1956823808 net.cpp:192] conv2_p needs backward computation.
+I0607 21:32:20.542645 1956823808 net.cpp:192] pool1_p needs backward computation.
+I0607 21:32:20.542649 1956823808 net.cpp:192] conv1_p needs backward computation.
+I0607 21:32:20.542654 1956823808 net.cpp:192] feat needs backward computation.
+I0607 21:32:20.542659 1956823808 net.cpp:192] ip2 needs backward computation.
+I0607 21:32:20.542665 1956823808 net.cpp:192] relu1 needs backward computation.
+I0607 21:32:20.542671 1956823808 net.cpp:192] ip1 needs backward computation.
+I0607 21:32:20.542677 1956823808 net.cpp:192] pool3 needs backward computation.
+I0607 21:32:20.542685 1956823808 net.cpp:192] conv3 needs backward computation.
+I0607 21:32:20.542692 1956823808 net.cpp:192] pool2 needs backward computation.
+I0607 21:32:20.542698 1956823808 net.cpp:192] conv2 needs backward computation.
+I0607 21:32:20.542706 1956823808 net.cpp:192] pool1 needs backward computation.
+I0607 21:32:20.542711 1956823808 net.cpp:192] conv1 needs backward computation.
+I0607 21:32:20.542718 1956823808 net.cpp:194] slice_pair does not need backward computation.
+I0607 21:32:20.542727 1956823808 net.cpp:194] pair_data does not need backward computation.
+I0607 21:32:20.542733 1956823808 net.cpp:235] This network produces output loss
+I0607 21:32:20.542757 1956823808 net.cpp:482] Collecting Learning Rate and Weight Decay.
+I0607 21:32:20.542765 1956823808 net.cpp:247] Network initialization done.
+I0607 21:32:20.542768 1956823808 net.cpp:248] Memory required for data: 151290004
+I0607 21:32:20.542925 1956823808 solver.cpp:42] Solver scaffolding done.
+I0607 21:32:20.543023 1956823808 solver.cpp:250] Solving siamese_train_validate
+I0607 21:32:20.543033 1956823808 solver.cpp:251] Learning Rate Policy: inv
+I0607 21:32:20.543875 1956823808 solver.cpp:294] Iteration 0, Testing net (#0)
+I0607 21:32:25.934227 1956823808 solver.cpp:343]     Test net output #0: loss = 1489.33 (* 1 = 1489.33 loss)
+I0607 21:32:25.977205 1956823808 solver.cpp:214] Iteration 0, loss = 1532.83
+I0607 21:32:25.977237 1956823808 solver.cpp:229]     Train net output #0: loss = 1532.83 (* 1 = 1532.83 loss)
+I0607 21:32:25.977252 1956823808 solver.cpp:486] Iteration 0, lr = 0.0001
+I0607 21:32:38.980512 1956823808 solver.cpp:214] Iteration 100, loss = -0.0078125
+I0607 21:32:38.980546 1956823808 solver.cpp:229]     Train net output #0: loss = 0.234375 (* 1 = 0.234375 loss)
+I0607 21:32:38.980556 1956823808 solver.cpp:486] Iteration 100, lr = 9.92565e-05
+I0607 21:32:50.870625 1956823808 solver.cpp:214] Iteration 200, loss = 0.046875
+I0607 21:32:50.870676 1956823808 solver.cpp:229]     Train net output #0: loss = 0.289062 (* 1 = 0.289062 loss)
+I0607 21:32:50.870686 1956823808 solver.cpp:486] Iteration 200, lr = 9.85258e-05
+I0607 21:33:02.652345 1956823808 solver.cpp:214] Iteration 300, loss = 0.078125
+I0607 21:33:02.652382 1956823808 solver.cpp:229]     Train net output #0: loss = 0.320312 (* 1 = 0.320312 loss)
+I0607 21:33:02.652392 1956823808 solver.cpp:486] Iteration 300, lr = 9.78075e-05
+I0607 21:33:14.514647 1956823808 solver.cpp:214] Iteration 400, loss = 0.015625
+I0607 21:33:14.514684 1956823808 solver.cpp:229]     Train net output #0: loss = 0.257812 (* 1 = 0.257812 loss)
+I0607 21:33:14.514693 1956823808 solver.cpp:486] Iteration 400, lr = 9.71013e-05
+I0607 21:33:26.279871 1956823808 solver.cpp:294] Iteration 500, Testing net (#0)
+I0607 21:33:31.652871 1956823808 solver.cpp:343]     Test net output #0: loss = 0.24675 (* 1 = 0.24675 loss)
+I0607 21:33:31.695981 1956823808 solver.cpp:214] Iteration 500, loss = 0.046875
+I0607 21:33:31.696027 1956823808 solver.cpp:229]     Train net output #0: loss = 0.289062 (* 1 = 0.289062 loss)
+I0607 21:33:31.696038 1956823808 solver.cpp:486] Iteration 500, lr = 9.64069e-05
+I0607 21:33:43.925595 1956823808 solver.cpp:214] Iteration 600, loss = 0.03125
+I0607 21:33:43.925629 1956823808 solver.cpp:229]     Train net output #0: loss = 0.273438 (* 1 = 0.273438 loss)
+I0607 21:33:43.925638 1956823808 solver.cpp:486] Iteration 600, lr = 9.57239e-05
+I0607 21:33:55.885488 1956823808 solver.cpp:214] Iteration 700, loss = -0.0078125
+I0607 21:33:55.885522 1956823808 solver.cpp:229]     Train net output #0: loss = 0.234375 (* 1 = 0.234375 loss)
+I0607 21:33:55.885532 1956823808 solver.cpp:486] Iteration 700, lr = 9.50522e-05
+I0607 21:34:07.909576 1956823808 solver.cpp:214] Iteration 800, loss = 0.0625
+I0607 21:34:07.909631 1956823808 solver.cpp:229]     Train net output #0: loss = 0.304688 (* 1 = 0.304688 loss)
+I0607 21:34:07.909641 1956823808 solver.cpp:486] Iteration 800, lr = 9.43913e-05
+I0607 21:34:19.970039 1956823808 solver.cpp:214] Iteration 900, loss = -0.0390625
+I0607 21:34:19.970073 1956823808 solver.cpp:229]     Train net output #0: loss = 0.203125 (* 1 = 0.203125 loss)
+I0607 21:34:19.970083 1956823808 solver.cpp:486] Iteration 900, lr = 9.37411e-05
+I0607 21:34:31.843255 1956823808 solver.cpp:294] Iteration 1000, Testing net (#0)
+I0607 21:34:37.319262 1956823808 solver.cpp:343]     Test net output #0: loss = 0.24735 (* 1 = 0.24735 loss)
+I0607 21:34:37.362293 1956823808 solver.cpp:214] Iteration 1000, loss = 0.0234375
+I0607 21:34:37.362336 1956823808 solver.cpp:229]     Train net output #0: loss = 0.265625 (* 1 = 0.265625 loss)
+I0607 21:34:37.362347 1956823808 solver.cpp:486] Iteration 1000, lr = 9.31012e-05
+I0607 21:34:49.591620 1956823808 solver.cpp:214] Iteration 1100, loss = 0
+I0607 21:34:49.591670 1956823808 solver.cpp:229]     Train net output #0: loss = 0.242188 (* 1 = 0.242188 loss)
+I0607 21:34:49.591681 1956823808 solver.cpp:486] Iteration 1100, lr = 9.24715e-05
+I0607 21:35:01.471806 1956823808 solver.cpp:214] Iteration 1200, loss = 0.015625
+I0607 21:35:01.471840 1956823808 solver.cpp:229]     Train net output #0: loss = 0.257812 (* 1 = 0.257812 loss)
+I0607 21:35:01.471849 1956823808 solver.cpp:486] Iteration 1200, lr = 9.18515e-05
+I0607 21:35:13.362324 1956823808 solver.cpp:214] Iteration 1300, loss = -0.0390625
+I0607 21:35:13.362360 1956823808 solver.cpp:229]     Train net output #0: loss = 0.203125 (* 1 = 0.203125 loss)
+I0607 21:35:13.362370 1956823808 solver.cpp:486] Iteration 1300, lr = 9.12412e-05
+I0607 21:35:25.243372 1956823808 solver.cpp:214] Iteration 1400, loss = 0.03125
+I0607 21:35:25.243419 1956823808 solver.cpp:229]     Train net output #0: loss = 0.273438 (* 1 = 0.273438 loss)
+I0607 21:35:25.243429 1956823808 solver.cpp:486] Iteration 1400, lr = 9.06403e-05
+I0607 21:35:37.004228 1956823808 solver.cpp:294] Iteration 1500, Testing net (#0)
+I0607 21:35:42.318585 1956823808 solver.cpp:343]     Test net output #0: loss = 0.2472 (* 1 = 0.2472 loss)
+I0607 21:35:42.359760 1956823808 solver.cpp:214] Iteration 1500, loss = -0.03125
+I0607 21:35:42.359801 1956823808 solver.cpp:229]     Train net output #0: loss = 0.210938 (* 1 = 0.210938 loss)
+I0607 21:35:42.359812 1956823808 solver.cpp:486] Iteration 1500, lr = 9.00485e-05
+I0607 21:35:54.386579 1956823808 solver.cpp:214] Iteration 1600, loss = -0.0390625
+I0607 21:35:54.386612 1956823808 solver.cpp:229]     Train net output #0: loss = 0.203125 (* 1 = 0.203125 loss)
+I0607 21:35:54.386622 1956823808 solver.cpp:486] Iteration 1600, lr = 8.94657e-05
+I0607 21:36:06.269834 1956823808 solver.cpp:214] Iteration 1700, loss = 0.0078125
+I0607 21:36:06.269896 1956823808 solver.cpp:229]     Train net output #0: loss = 0.25 (* 1 = 0.25 loss)
+I0607 21:36:06.269906 1956823808 solver.cpp:486] Iteration 1700, lr = 8.88916e-05
+I0607 21:36:18.148530 1956823808 solver.cpp:214] Iteration 1800, loss = 0.03125
+I0607 21:36:18.148563 1956823808 solver.cpp:229]     Train net output #0: loss = 0.273438 (* 1 = 0.273438 loss)
+I0607 21:36:18.148573 1956823808 solver.cpp:486] Iteration 1800, lr = 8.8326e-05
+I0607 21:36:30.034158 1956823808 solver.cpp:214] Iteration 1900, loss = 0.0234375
+I0607 21:36:30.034190 1956823808 solver.cpp:229]     Train net output #0: loss = 0.265625 (* 1 = 0.265625 loss)
+I0607 21:36:30.034199 1956823808 solver.cpp:486] Iteration 1900, lr = 8.77687e-05
+I0607 21:36:41.798801 1956823808 solver.cpp:294] Iteration 2000, Testing net (#0)
+I0607 21:36:47.097129 1956823808 solver.cpp:343]     Test net output #0: loss = 0.2473 (* 1 = 0.2473 loss)
+I0607 21:36:47.139022 1956823808 solver.cpp:214] Iteration 2000, loss = 0.0390625
+I0607 21:36:47.139065 1956823808 solver.cpp:229]     Train net output #0: loss = 0.28125 (* 1 = 0.28125 loss)
+I0607 21:36:47.139075 1956823808 solver.cpp:486] Iteration 2000, lr = 8.72196e-05
+I0607 21:36:59.145427 1956823808 solver.cpp:214] Iteration 2100, loss = -0.0078125
+I0607 21:36:59.145460 1956823808 solver.cpp:229]     Train net output #0: loss = 0.234375 (* 1 = 0.234375 loss)
+I0607 21:36:59.145469 1956823808 solver.cpp:486] Iteration 2100, lr = 8.66784e-05
+I0607 21:37:11.038811 1956823808 solver.cpp:214] Iteration 2200, loss = 0.0078125
+I0607 21:37:11.038846 1956823808 solver.cpp:229]     Train net output #0: loss = 0.25 (* 1 = 0.25 loss)
+I0607 21:37:11.038856 1956823808 solver.cpp:486] Iteration 2200, lr = 8.6145e-05
+I0607 21:37:22.925714 1956823808 solver.cpp:214] Iteration 2300, loss = 0.0390625
+I0607 21:37:22.925765 1956823808 solver.cpp:229]     Train net output #0: loss = 0.28125 (* 1 = 0.28125 loss)
+I0607 21:37:22.925775 1956823808 solver.cpp:486] Iteration 2300, lr = 8.56192e-05
+I0607 21:37:34.803367 1956823808 solver.cpp:214] Iteration 2400, loss = 0.0390625
+I0607 21:37:34.803398 1956823808 solver.cpp:229]     Train net output #0: loss = 0.28125 (* 1 = 0.28125 loss)
+I0607 21:37:34.803407 1956823808 solver.cpp:486] Iteration 2400, lr = 8.51008e-05
+I0607 21:37:46.563230 1956823808 solver.cpp:294] Iteration 2500, Testing net (#0)
+I0607 21:37:51.915110 1956823808 solver.cpp:343]     Test net output #0: loss = 0.24735 (* 1 = 0.24735 loss)
+I0607 21:37:51.956295 1956823808 solver.cpp:214] Iteration 2500, loss = 0
+I0607 21:37:51.956341 1956823808 solver.cpp:229]     Train net output #0: loss = 0.242188 (* 1 = 0.242188 loss)
+I0607 21:37:51.956351 1956823808 solver.cpp:486] Iteration 2500, lr = 8.45897e-05
+I0607 21:38:04.159790 1956823808 solver.cpp:214] Iteration 2600, loss = 0
+I0607 21:38:04.159842 1956823808 solver.cpp:229]     Train net output #0: loss = 0.242188 (* 1 = 0.242188 loss)
+I0607 21:38:04.159852 1956823808 solver.cpp:486] Iteration 2600, lr = 8.40857e-05
+I0607 21:38:16.267901 1956823808 solver.cpp:214] Iteration 2700, loss = -0.03125
+I0607 21:38:16.267936 1956823808 solver.cpp:229]     Train net output #0: loss = 0.210938 (* 1 = 0.210938 loss)
+I0607 21:38:16.267946 1956823808 solver.cpp:486] Iteration 2700, lr = 8.35886e-05
+I0607 21:38:28.376127 1956823808 solver.cpp:214] Iteration 2800, loss = -0.0390625
+I0607 21:38:28.376160 1956823808 solver.cpp:229]     Train net output #0: loss = 0.203125 (* 1 = 0.203125 loss)
+I0607 21:38:28.376170 1956823808 solver.cpp:486] Iteration 2800, lr = 8.30984e-05
+I0607 21:38:40.484974 1956823808 solver.cpp:214] Iteration 2900, loss = -0.03125
+I0607 21:38:40.485045 1956823808 solver.cpp:229]     Train net output #0: loss = 0.210938 (* 1 = 0.210938 loss)
+I0607 21:38:40.485056 1956823808 solver.cpp:486] Iteration 2900, lr = 8.26148e-05
+I0607 21:38:52.603559 1956823808 solver.cpp:361] Snapshotting to src/siamese_network_bw/model/snapshots/siamese_iter_3000.caffemodel
+I0607 21:38:52.778357 1956823808 solver.cpp:369] Snapshotting solver state to src/siamese_network_bw/model/snapshots/siamese_iter_3000.solverstate
+I0607 21:38:52.947793 1956823808 solver.cpp:276] Iteration 3000, loss = 0.28125
+I0607 21:38:52.947823 1956823808 solver.cpp:294] Iteration 3000, Testing net (#0)
+I0607 21:38:58.461053 1956823808 solver.cpp:343]     Test net output #0: loss = 0.2474 (* 1 = 0.2474 loss)
+I0607 21:38:58.461088 1956823808 solver.cpp:281] Optimization Done.
+I0607 21:38:58.461097 1956823808 caffe.cpp:134] Optimization Done.
