@@ -56,8 +56,8 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 32
-    kernel_size: 3
+    num_output: 20
+    kernel_size: 5
     stride: 1
     weight_filler {
       type: "xavier"
@@ -92,8 +92,8 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 64
-    kernel_size: 2
+    num_output: 50
+    kernel_size: 5
     stride: 1
     weight_filler {
       type: "xavier"
@@ -115,45 +115,9 @@ layer {
   }
 }
 layer {
-  name: "conv3"
-  type: "Convolution"
-  bottom: "pool2"
-  top: "conv3"
-  param {
-    name: "conv3_w"
-    lr_mult: 1
-  }
-  param {
-    name: "conv3_b"
-    lr_mult: 2
-  }
-  convolution_param {
-    num_output: 128
-    kernel_size: 2
-    stride: 1
-    weight_filler {
-      type: "xavier"
-    }
-    bias_filler {
-      type: "constant"
-    }
-  }
-}
-layer {
-  name: "pool3"
-  type: "Pooling"
-  bottom: "conv3"
-  top: "pool3"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
-layer {
   name: "ip1"
   type: "InnerProduct"
-  bottom: "pool3"
+  bottom: "pool2"
   top: "ip1"
   param {
     name: "ip1_w"
@@ -239,8 +203,8 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 32
-    kernel_size: 3
+    num_output: 20
+    kernel_size: 5
     stride: 1
     weight_filler {
       type: "xavier"
@@ -275,8 +239,8 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 64
-    kernel_size: 2
+    num_output: 50
+    kernel_size: 5
     stride: 1
     weight_filler {
       type: "xavier"
@@ -298,45 +262,9 @@ layer {
   }
 }
 layer {
-  name: "conv3_p"
-  type: "Convolution"
-  bottom: "pool2_p"
-  top: "conv3_p"
-  param {
-    name: "conv3_w"
-    lr_mult: 1
-  }
-  param {
-    name: "conv3_b"
-    lr_mult: 2
-  }
-  convolution_param {
-    num_output: 128
-    kernel_size: 2
-    stride: 1
-    weight_filler {
-      type: "xavier"
-    }
-    bias_filler {
-      type: "constant"
-    }
-  }
-}
-layer {
-  name: "pool3_p"
-  type: "Pooling"
-  bottom: "conv3_p"
-  top: "pool3_p"
-  pooling_param {
-    pool: MAX
-    kernel_size: 2
-    stride: 2
-  }
-}
-layer {
   name: "ip1_p"
   type: "InnerProduct"
-  bottom: "pool3_p"
+  bottom: "pool2_p"
   top: "ip1_p"
   param {
     name: "ip1_w"
