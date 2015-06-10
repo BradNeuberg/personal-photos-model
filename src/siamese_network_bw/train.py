@@ -2,6 +2,8 @@ import shutil
 import subprocess
 import sys
 import csv
+import fileinput
+import re
 
 import constants as constants
 import graph as graph
@@ -38,18 +40,29 @@ def generate_parsed_logs():
     """
 
     print("\tParsing logs...")
-    process = subprocess.Popen([constants.CAFFE_HOME + "/tools/extra/parse_log.sh",
-        constants.OUTPUT_LOG_PATH], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen([constants.CAFFE_HOME + "/tools/extra/parse_log.py",
+        constants.OUTPUT_LOG_PATH, constants.LOG_DIR], stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT)
     for line in iter(process.stdout.readline, ''):
         sys.stdout.write(line)
 
-    # The parse_log.sh script dumps its output in our root; move it to a better location.
-    shutil.rmtree(constants.OUTPUT_LOG_PATH + ".train", ignore_errors=True)
     shutil.rmtree(constants.OUTPUT_LOG_PATH + ".validate", ignore_errors=True)
-    shutil.move("output" + constants.OUTPUT_ENDING + ".log.train",
-        constants.OUTPUT_LOG_PATH + ".train")
-    shutil.move("output" + constants.OUTPUT_ENDING + ".log.test",
+    shutil.move(constants.OUTPUT_LOG_PATH + ".test",
         constants.OUTPUT_LOG_PATH + ".validate")
+
+    # Convert the commas in the files into tabs to make them easier to read.
+    log_files = [constants.OUTPUT_LOG_PATH + ".train",
+        constants.OUTPUT_LOG_PATH + ".validate"]
+    for line in fileinput.input(log_files, inplace=True):
+        line = line.replace(u",", u"\t")
+        if fileinput.isfirstline():
+            # HACK(neuberg): The column headers with tabs don't quite line up, so shorten
+            # some column names and add a tab.
+            line = line.replace(u"NumIters", u"Iters")
+            line = line.replace(u"LearningRate", u"\tLR")
+
+        sys.stdout.write(line)
+    fileinput.close()
 
     logs = [
         {"title": "Testing", "filename": "train"},
@@ -68,28 +81,23 @@ def generate_parsed_logs():
 def parse_logs():
     training_iters = []
     training_loss = []
-    for line in csv.reader(open(constants.OUTPUT_LOG_PATH + ".train"), delimiter=" ",
+    for line in csv.reader(open(constants.OUTPUT_LOG_PATH + ".train"), delimiter="\t",
                             skipinitialspace=True):
-        # Skip first line, which has column headers.
-        if line[0] == "#Iters":
+        if re.search("Iters", str(line)):
             continue
 
-        training_iters.append(int(line[0]))
-        training_loss.append(float(line[2]))
+        training_iters.append(int(float(line[0])))
+        training_loss.append(float(line[3]))
 
     validation_iters = []
     validation_loss = []
-    for line in csv.reader(open(constants.OUTPUT_LOG_PATH + ".validate"), delimiter=" ",
+    for line in csv.reader(open(constants.OUTPUT_LOG_PATH + ".validate"), delimiter="\t",
                             skipinitialspace=True):
-        # Skip first line, which has column headers.
-        if line[0] == "#Iters":
+        if re.search("Iters", str(line)):
             continue
 
-        validation_iters.append(int(line[0]))
-        # Note: In the logs the training loss is reported as training accuracy,
-        # but I believe this is a bug in the parse_log.sh script when interacting
-        # with the siamese network output.
-        validation_loss.append(float(line[2]))
+        validation_iters.append(int(float(line[0])))
+        validation_loss.append(float(line[3]))
 
     return ({
         "iters": training_iters,

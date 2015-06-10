@@ -10,7 +10,7 @@ def determine_output_ending():
     file_found = False
     idx = 1
     while not file_found:
-        if not os.path.isfile(LOG_DIR + "/output%04d.log.train" % (idx)):
+        if not os.path.isfile(LOG_DIR + "/output%04d.png" % (idx)):
           return "%04d" % (idx)
         idx += 1
 
