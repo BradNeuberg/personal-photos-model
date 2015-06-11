@@ -1,0 +1,3 @@
+Everything after 0017, unless otherwise noted, has the following characteristics, so we will leave it off our graphs moving forward:
+* Running on Caffe downloaded and compiled around June 7th (new Caffe)
+* Fixed scaling bug where I forgot to re-scale using Caffe input values, which was leading to gradient explosions and NaNs.

@@ -43,4 +43,4 @@ CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
 # hyperparameter tuning.
-ARCHITECTURE = "B&W MNIST (new Caffe version); bias 0.1"
+ARCHITECTURE = "B&W MNIST"
