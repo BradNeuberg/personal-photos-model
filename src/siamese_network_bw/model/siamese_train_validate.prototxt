@@ -8,7 +8,7 @@ layer {
     phase: TRAIN
   }
   transform_param {
-    scale: 1
+    scale: 0.00392156
   }
   data_param {
     source: "src/siamese_network_bw/data/siamese_network_train_leveldb"
@@ -24,7 +24,7 @@ layer {
     phase: TEST
   }
   transform_param {
-    scale: 1
+    scale: 0.00392156
   }
   data_param {
     source: "src/siamese_network_bw/data/siamese_network_validation_leveldb"
@@ -64,9 +64,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -103,9 +100,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -140,9 +134,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -172,9 +163,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -198,9 +186,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -226,9 +211,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -265,9 +247,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -302,9 +281,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -334,9 +310,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
@@ -360,9 +333,6 @@ layer {
     }
     bias_filler {
       type: "constant"
-      # Make sure our bias values don't explode so we don't end up with non-deterministic NaN
-      # loss values.
-      value: 0.1
     }
   }
 }
