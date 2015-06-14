@@ -1,7 +1,7 @@
 name: "siamese"
 input: "data"
-input_dim: 6560
 # Number of testing (not validation) samples.
+input_dim: 126 # Number of testing cluster examples.
 input_dim: 1
 input_dim: 62
 input_dim: 47
