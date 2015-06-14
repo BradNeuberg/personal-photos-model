@@ -33,7 +33,13 @@ OUTPUT_LOG_PATH = LOG_DIR + "/output" + OUTPUT_ENDING + ".log"
 # Graph output file path.
 OUTPUT_GRAPH_PATH = LOG_DIR + "/output" + OUTPUT_ENDING + ".png"
 
+# Graph where we test clustering.
+OUTPUT_CLUSTER_PATH = LOG_DIR + "/output" + OUTPUT_ENDING + ".cluster.png"
+
 SOLVER_FILE = ROOT_DIR + "/model/siamese_solver.prototxt"
+
+TRAINED_MODEL = ROOT_DIR + "/model/siamese.prototxt"
+TRAINED_WEIGHTS = ROOT_DIR + "/model/trained_model.caffemodel"
 
 TRAINING_SIZE = 6560
 VALIDATION_SIZE = 1640

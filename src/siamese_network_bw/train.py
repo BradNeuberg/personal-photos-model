@@ -7,20 +7,22 @@ import re
 
 import constants as constants
 import graph as graph
+import predict as predict
 
-def train(output_graphs):
+def train(output_graphs, weight_file=constants.TRAINED_WEIGHTS, note=None):
     print("Training data, generating graphs: %r" % output_graphs)
 
     run_trainer()
     generate_parsed_logs()
     (training_details, validation_details) = parse_logs()
-    graph.plot_results(training_details, validation_details)
+    if output_graphs:
+        graph.plot_results(training_details, validation_details, note)
+        predict.test_cluster(weight_file)
 
 def run_trainer():
     """
     Runs Caffe to train the model.
     """
-
     print("\tRunning trainer...")
     with open(constants.OUTPUT_LOG_PATH, "w") as f:
         process = subprocess.Popen([constants.CAFFE_HOME + "/build/tools/caffe", "train",

@@ -6,7 +6,7 @@ from matplotlib.font_manager import FontProperties
 
 import constants
 
-def plot_results(training_details, validation_details):
+def plot_results(training_details, validation_details, note=None):
     """
     Generates a combined training/validation graph.
     """
@@ -31,12 +31,12 @@ def plot_results(training_details, validation_details):
     plt.legend(handles=[blue_line, red_line], prop=legend_font, loc="lower right")
 
     plt.suptitle("Iterations vs. Training/Validation Loss", fontsize=14)
-    plt.title(get_hyperparameter_details(), style="italic", fontsize=12)
+    plt.title(get_hyperparameter_details(note), style="italic", fontsize=12)
 
     plt.savefig(constants.OUTPUT_GRAPH_PATH)
     print("\t\tGraph saved to %s" % constants.OUTPUT_GRAPH_PATH)
 
-def get_hyperparameter_details():
+def get_hyperparameter_details(note=None):
     """
     Parse out some of the values we need from the Caffe solver prototext file.
     """
@@ -44,4 +44,10 @@ def get_hyperparameter_details():
     details = solver.read()
     lr = re.search("^base_lr:\s*([0-9.]+)$", details, re.MULTILINE).group(1)
     max_iter = re.search("^max_iter:\s*([0-9.]+)$", details, re.MULTILINE).group(1)
-    return "(lr: %s; max_iter: %s; arch: %s)" % (lr, max_iter, constants.ARCHITECTURE)
+    results = "(lr: %s; max_iter: %s; arch: %s" % (lr, max_iter, constants.ARCHITECTURE)
+
+    # Add any extra details into the graph if someone specified that on the command line.
+    if note:
+        results += "; %s" % note
+    results += ")"
+    return results

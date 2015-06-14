@@ -4,12 +4,12 @@
 import shutil
 
 import numpy as np
-
-from sklearn.datasets import fetch_lfw_pairs
+from sklearn.datasets import (
+    fetch_lfw_pairs,
+    fetch_lfw_people,
+)
 from sklearn.cross_validation import ShuffleSplit
-
 import leveldb
-
 from caffe_pb2 import Datum
 
 import constants as constants
@@ -113,3 +113,33 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
         db.Put(key, value)
 
     db.Write(batch, sync = True)
+
+def prepare_testing_cluster_data():
+    """
+    Load individual faces for 5 different people, rather than pairs. These faces are known
+    to have 10 or more images in the testing data.
+    """
+    print "\tLoading testing cluster data..."
+    testing = fetch_lfw_people()
+    data = testing["images"]
+    labels = testing["target"]
+    label_names = testing["target_names"]
+    (m, height, width) = data.shape
+
+    good_identities = [20, 52, 127, 210, 223]
+    indexes_to_keep = [idx for idx in range(m) if labels[idx] in good_identities]
+    data_to_keep = []
+    labels_to_keep = []
+    for i in range(len(indexes_to_keep)):
+        keep_me_idx = indexes_to_keep[i]
+        data_to_keep.append(data[keep_me_idx])
+        labels_to_keep.append(labels[keep_me_idx])
+
+    data_to_keep = np.array(data_to_keep)
+
+    # Scale the data.
+    caffe_in = data_to_keep.reshape(len(data_to_keep), 1, height, width) * 0.00392156
+    # Mean normalize it.
+    caffe_in = siamese_utils.mean_normalize(caffe_in)
+
+    return (caffe_in, labels_to_keep, good_identities)
