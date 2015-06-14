@@ -1,4 +1,5 @@
 src/siamese_network_bw/data/*
+src/siamese_network_bw/model/snapshots/*.caffemodel
 *.solverstate
 .lev_history
 *.pyc
