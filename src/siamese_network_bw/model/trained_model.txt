@@ -1,0 +1,1 @@
+trained_model.caffemodel is currently logs/output0019
