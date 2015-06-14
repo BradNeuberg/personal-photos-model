@@ -16,8 +16,8 @@ def parse_command_line():
     parser.add_argument("-t", "--train", help="""Train classifier. Use --graph to generate quality
         graphs""", action="store_true")
     parser.add_argument("-g", "--graph", help="Generate training graphs.", action="store_true")
-    parser.add_argument("--weights", help="The trained model weights to use; if not provided " +
-        "defaults to " + constants.TRAINED_WEIGHTS, type=str, default=constants.TRAINED_WEIGHTS)
+    parser.add_argument("--weights", help="""The trained model weights to use; if not provided
+        defaults to """ + constants.TRAINED_WEIGHTS, type=str, default=constants.TRAINED_WEIGHTS)
     parser.add_argument("--note", help="Adds extra note onto generated quality graph.", type=str)
     parser.add_argument("-s", "--is_same", help="""Determines if the two images provided are the
         same or different. Provide relative paths to both images.""", nargs=2, type=str)
