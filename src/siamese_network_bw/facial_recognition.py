@@ -6,6 +6,7 @@ import constants as constants
 from prepare_data import prepare_data
 from train import train
 from predict import predict
+from visualize import visualize
 
 def parse_command_line():
     parser = argparse.ArgumentParser(
@@ -21,6 +22,9 @@ def parse_command_line():
     parser.add_argument("--note", help="Adds extra note onto generated quality graph.", type=str)
     parser.add_argument("-s", "--is_same", help="""Determines if the two images provided are the
         same or different. Provide relative paths to both images.""", nargs=2, type=str)
+    parser.add_argument("--visualize", help="""Writes out various visualizations of the facial
+        images.""", action="store_true")
+
     args = vars(parser.parse_args())
 
     if os.environ.get("CAFFE_HOME") == None:
@@ -30,6 +34,8 @@ def parse_command_line():
 
     if args["prepare_data"] == True:
         prepare_data()
+    if args["visualize"] == True:
+        visualize()
     if args["train"] == True:
         train(args["graph"], weight_file=args["weights"], note=args["note"])
     if args["is_same"] != None:
