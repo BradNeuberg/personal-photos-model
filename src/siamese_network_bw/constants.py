@@ -6,7 +6,6 @@ def determine_output_ending():
     such as output0001.log. This method determines an appropriate, unused
     ending, incrementing through those that are already present.
     """
-
     file_found = False
     idx = 1
     while not file_found:
