@@ -4,8 +4,8 @@ import constants
 
 def mean_normalize(entry):
     """
-    Mean normalizes a pixel vector. Entry is an unrolled pixel vector with two side by side facial
-    images.
+    Mean normalizes a pixel vector. Entry is a numpy array of unrolled pixel vectors with
+    two side by side facial images for each entry.
     """
     entry -= np.mean(entry, axis=0)
     return entry

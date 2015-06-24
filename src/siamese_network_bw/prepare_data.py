@@ -96,9 +96,8 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
         key = siamese_utils.get_key(idx)
         print "\t\tPreparing key: %s" % key
 
-        # Mean normalize the pixel vector. We don't scale it's values to be between 0 and 1 as
-        # our Caffe model will do that.
-        data = siamese_utils.mean_normalize(data)
+        # Do things like mean normalize, etc. that happen across both testing and validation.
+        data = preprocess_data(data)
 
         # Each entry in the leveldb is a Caffe protobuffer "Datum" object containing details.
         datum = Datum()
@@ -113,6 +112,18 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
         db.Put(key, value)
 
     db.Write(batch, sync = True)
+
+def preprocess_data(data):
+    """
+    Applies any standard preprocessing we might do on data, whether it is during
+    training or testing time. 'data' is a numpy array of unrolled pixel vectors with
+    two side by side facial images for each entry.
+    """
+    data = siamese_utils.mean_normalize(data)
+
+    # We don't scale it's values to be between 0 and 1 as our Caffe model will do that.
+
+    return data
 
 def prepare_testing_cluster_data():
     """
@@ -139,7 +150,6 @@ def prepare_testing_cluster_data():
 
     # Scale the data.
     caffe_in = data_to_keep.reshape(len(data_to_keep), 1, height, width) * 0.00392156
-    # Mean normalize it.
-    caffe_in = siamese_utils.mean_normalize(caffe_in)
+    caffe_in = preprocess_data(caffe_in)
 
     return (caffe_in, labels_to_keep, good_identities)
