@@ -9,14 +9,19 @@ import constants as constants
 import graph as graph
 import predict as predict
 
-def train(output_graphs, weight_file=constants.TRAINED_WEIGHTS, note=None):
+def train(output_graphs, weight_file=None, note=None):
     print("Training data, generating graphs: %r" % output_graphs)
 
     run_trainer()
     generate_parsed_logs()
-    (training_details, validation_details) = parse_logs()
+    (training_details, validation_details, trained_weight_file) = parse_logs()
     if output_graphs:
         graph.plot_results(training_details, validation_details, note)
+
+        # If no weight file is provided by callers to this method, parse out the one we just
+        # trained.
+        if weight_file == None:
+            weight_file = trained_weight_file
         predict.test_cluster(weight_file)
 
 def run_trainer():
@@ -101,10 +106,18 @@ def parse_logs():
         validation_iters.append(int(float(line[0])))
         validation_loss.append(float(line[3]))
 
-    return ({
-        "iters": training_iters,
-        "loss": training_loss
-    }, {
-        "iters": validation_iters,
-        "loss": validation_loss
-    })
+    trained_weight_file = None
+    with open(constants.OUTPUT_LOG_PATH) as f:
+        content = f.read()
+        trained_weight_file = re.findall("Snapshotting to (.*)$", content, re.MULTILINE)[0]
+
+    return (
+        {
+            "iters": training_iters,
+            "loss": training_loss
+        }, {
+            "iters": validation_iters,
+            "loss": validation_loss
+        },
+        trained_weight_file
+    )
