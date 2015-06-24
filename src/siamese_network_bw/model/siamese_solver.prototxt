@@ -1,8 +1,7 @@
 # The train/test net protocol buffer definition
 net: "src/siamese_network_bw/model/siamese_train_validate.prototxt"
 # test_iter specifies how many forward passes the test should carry out.
-# We have test batch size 100 and 100 test iterations,
-# covering the full 2200 testing images.
+# We have test batch size 100.
 test_iter: 100
 # Carry out testing every 500 training iterations.
 test_interval: 500
