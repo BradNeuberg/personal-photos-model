@@ -13,6 +13,7 @@ def train(output_graphs, weight_file=None, note=None):
     print("Training data, generating graphs: %r" % output_graphs)
 
     run_trainer()
+    copy_model_definitions()
     generate_parsed_logs()
     (training_details, validation_details) = parse_logs()
     trained_weight_file = get_trained_weight_file()
@@ -41,6 +42,19 @@ def run_trainer():
             f.write(line)
 
         print("\t\tTraining output saved to %s" % constants.OUTPUT_LOG_PATH)
+
+def copy_model_definitions():
+    """
+    Copies over our model definition files to the log directory with the name of the output we
+    just ran for future reference, so we can know the network architecture that was trained for
+    comparison purposes.
+    """
+    shutil.copyfile(constants.ROOT_DIR + "/model/siamese.prototxt",
+        constants.OUTPUT_LOG_PREFIX + "_siamese.prototxt")
+    shutil.copyfile(constants.ROOT_DIR + "/model/siamese_solver.prototxt",
+        constants.OUTPUT_LOG_PREFIX + "_siamese_solver.prototxt")
+    shutil.copyfile(constants.ROOT_DIR + "/model/siamese_train_validate.prototxt",
+        constants.OUTPUT_LOG_PREFIX + "_siamese_train_validate.prototxt")
 
 def generate_parsed_logs():
     """

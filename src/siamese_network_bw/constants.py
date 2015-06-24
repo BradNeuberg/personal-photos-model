@@ -26,14 +26,16 @@ TESTING_FILE = ROOT_DIR + "/data/siamese_network_test_leveldb"
 # The number to append to output files, such as output0001.log.
 OUTPUT_ENDING = determine_output_ending()
 
+OUTPUT_LOG_PREFIX = LOG_DIR + "/output" + OUTPUT_ENDING
+
 # Log output file path.
-OUTPUT_LOG_PATH = LOG_DIR + "/output" + OUTPUT_ENDING + ".log"
+OUTPUT_LOG_PATH = OUTPUT_LOG_PREFIX + ".log"
 
 # Graph output file path.
-OUTPUT_GRAPH_PATH = LOG_DIR + "/output" + OUTPUT_ENDING + ".png"
+OUTPUT_GRAPH_PATH = OUTPUT_LOG_PREFIX + ".png"
 
 # Graph where we test clustering.
-OUTPUT_CLUSTER_PATH = LOG_DIR + "/output" + OUTPUT_ENDING + ".cluster.png"
+OUTPUT_CLUSTER_PATH = OUTPUT_LOG_PREFIX + ".cluster.png"
 
 SOLVER_FILE = ROOT_DIR + "/model/siamese_solver.prototxt"
 
