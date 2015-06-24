@@ -14,7 +14,9 @@ def train(output_graphs, weight_file=None, note=None):
 
     run_trainer()
     generate_parsed_logs()
-    (training_details, validation_details, trained_weight_file) = parse_logs()
+    (training_details, validation_details) = parse_logs()
+    trained_weight_file = get_trained_weight_file()
+
     if output_graphs:
         graph.plot_results(training_details, validation_details, note)
 
@@ -86,6 +88,9 @@ def generate_parsed_logs():
     print("\t\tParsed validation log saved to %s\n" % (constants.OUTPUT_LOG_PATH + ".validate"))
 
 def parse_logs():
+    """
+    Parses our training and validation logs in order to return them in a way we can work with.
+    """
     training_iters = []
     training_loss = []
     for line in csv.reader(open(constants.OUTPUT_LOG_PATH + ".train"), delimiter="\t",
@@ -106,11 +111,6 @@ def parse_logs():
         validation_iters.append(int(float(line[0])))
         validation_loss.append(float(line[3]))
 
-    trained_weight_file = None
-    with open(constants.OUTPUT_LOG_PATH) as f:
-        content = f.read()
-        trained_weight_file = re.findall("Snapshotting to (.*)$", content, re.MULTILINE)[0]
-
     return (
         {
             "iters": training_iters,
@@ -118,6 +118,16 @@ def parse_logs():
         }, {
             "iters": validation_iters,
             "loss": validation_loss
-        },
-        trained_weight_file
+        }
     )
+
+def get_trained_weight_file():
+    """
+    Parses out the file name of the model weight file we just trained.
+    """
+    trained_weight_file = None
+    with open(constants.OUTPUT_LOG_PATH) as f:
+        content = f.read()
+        trained_weight_file = re.findall("Snapshotting to (.*)$", content, re.MULTILINE)[0]
+
+    return trained_weight_file
