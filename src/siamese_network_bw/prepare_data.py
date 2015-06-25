@@ -100,8 +100,7 @@ def generate_leveldb(file_path, data, target, channels, width, height):
         datum.channels = channels
         datum.height = height
         datum.width = width
-        # Our pixels are float values, such as -3.370285 after being mean normalized.
-        datum.float_data.extend(data.astype(float).flat)
+        datum.data = data.tobytes()
         datum.label = target[idx]
         value = datum.SerializeToString()
         db.Put(key, value)
@@ -114,7 +113,10 @@ def preprocess_data(data):
     training or testing time. 'data' is a numpy array of unrolled pixel vectors with
     two side by side facial images for each entry.
     """
-    data = siamese_utils.mean_normalize(data)
+    # NOTE(neuberg): Disable doing any mean normalization for now, as the Caffe MNIST vanilla
+    # converter doesn't do this and seems to get good results. Maybe convert this to use a Caffe
+    # MVN layer if we still want to do it?
+    #data = siamese_utils.mean_normalize(data)
 
     # We don't scale it's values to be between 0 and 1 as our Caffe model will do that.
 
