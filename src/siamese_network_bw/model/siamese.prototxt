@@ -1,10 +1,10 @@
 name: "siamese"
 input: "data"
-# Number of testing (not validation) samples.
-input_dim: 126 # Number of testing cluster examples.
+# Number of validation samples.
+input_dim: 10000
 input_dim: 1
-input_dim: 62
-input_dim: 47
+input_dim: 28
+input_dim: 28
 layer {
   name: "conv1"
   type: "Convolution"

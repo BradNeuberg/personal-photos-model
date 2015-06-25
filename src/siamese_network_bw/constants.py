@@ -13,8 +13,8 @@ def determine_output_ending():
           return "%04d" % (idx)
         idx += 1
 
-WIDTH = 47
-HEIGHT = 62
+WIDTH = 28
+HEIGHT = 28
 
 ROOT_DIR = "./src/siamese_network_bw"
 LOG_DIR = ROOT_DIR + "/logs"
@@ -42,12 +42,12 @@ SOLVER_FILE = ROOT_DIR + "/model/siamese_solver.prototxt"
 TRAINED_MODEL = ROOT_DIR + "/model/siamese.prototxt"
 TRAINED_WEIGHTS = ROOT_DIR + "/model/trained_model.caffemodel"
 
-TRAINING_SIZE = 6560
-VALIDATION_SIZE = 1640
+TRAINING_SIZE = 60000
+VALIDATION_SIZE = 10000
 TESTING_SIZE = 1000
 
 CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
 # hyperparameter tuning.
-ARCHITECTURE = "B&W MNIST"
+ARCHITECTURE = "Actual MNIST data and arch"

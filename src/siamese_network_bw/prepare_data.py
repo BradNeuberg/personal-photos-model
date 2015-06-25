@@ -2,13 +2,14 @@
 # Caffe.
 
 import shutil
+import random as random
 
 import numpy as np
+from sklearn.cross_validation import train_test_split
 from sklearn.datasets import (
-    fetch_lfw_pairs,
-    fetch_lfw_people,
+    fetch_mldata
 )
-from sklearn.cross_validation import ShuffleSplit
+from sklearn.utils import shuffle
 import leveldb
 from caffe_pb2 import Datum
 
@@ -17,80 +18,74 @@ import siamese_network_bw.siamese_utils as siamese_utils
 
 def prepare_data():
     print "Preparing data..."
-    print "\tLoading LFW data..."
+    print "\tLoading MNIST data..."
 
-    # Each image is 47 (width) x 62 (height). There are 2200 training images, 6000 validation
-    # images, and 1000 test images; note though that we change the split between training and
-    # validation images later.
-    train = {
-        "file_path": constants.TRAINING_FILE,
-        "lfw_pairs": fetch_lfw_pairs(subset="train")
-    }
-    validation = {
-        "file_path": constants.VALIDATION_FILE,
-        "lfw_pairs": fetch_lfw_pairs(subset="10_folds")
-    }
-    testing = {
-        "file_path": constants.TESTING_FILE,
-        "lfw_pairs": fetch_lfw_pairs(subset="test")
-    }
-
-    m, channels, height, width = testing["lfw_pairs"].pairs.shape
-
-    testing["lfw_pairs"] = {
-        "data": testing["lfw_pairs"].data,
-        "target": testing["lfw_pairs"].target,
-    }
+    # Each image is 28 (width) x 28 (height). There are 70K images total; we split this into
+    # 60K training pairs and 10K validation pairs.
+    mnist = fetch_mldata("MNIST original")
 
     print "\tShuffling & combining data..."
-    train, validation = prepare_training_validation_data(train, validation)
+    train, validation = prepare_training_validation_data(mnist)
 
-    for entry in [train, validation, testing]:
-        generate_leveldb(entry["file_path"], entry["lfw_pairs"], channels, width, height)
+    channels = 2 # One channel for each image in the pair.
+    width = constants.WIDTH
+    height = constants.HEIGHT
+    for entry in [train, validation]:
+        generate_leveldb(entry["file_path"], entry["data"], entry["target"], channels, width, height)
 
     print "\tDone preparing data."
 
-def prepare_training_validation_data(train, validation):
-    """
-    By default there is a strange split between the training and validation sets;
-    the training set is 2200 images while the validation set is 6000 images. We'd rather
-    have the split roughly the other way (80/20).
-    """
+def prepare_training_validation_data(mnist):
+    data = mnist["data"]
+    target = mnist["target"]
+    data, target = shuffle(data, target, random_state=0)
 
-    train_pairs = train["lfw_pairs"]
-    validation_pairs = validation["lfw_pairs"]
-    data = np.concatenate((train_pairs.data, validation_pairs.data))
-    target = np.concatenate((train_pairs.target, validation_pairs.target))
+    # Cluster the data into pairs.
+    data_pairs = []
+    target_pairs = []
+    num_pairs = len(data)
+    random.seed(0)
+    for idx in range(num_pairs):
+        image_1_idx = random.randint(0, num_pairs - 1)
+        image_1 = data[image_1_idx]
+        image_2_idx = random.randint(0, num_pairs - 1)
+        image_2 = data[image_2_idx]
+        same = None
+        if target[image_1_idx] == target[image_2_idx]:
+            same = 1
+        else:
+            same = 0
+        image = np.concatenate([image_1, image_2])
+        data_pairs.append(image)
+        target_pairs.append(same)
+    data_pairs = np.array(data_pairs)
+    target_pairs = np.array(target_pairs)
 
-    # After the split we should have 6560 training images and 1640 validation images.
-    split = ShuffleSplit(n=len(data), train_size=0.8, test_size=0.2)
+    # Split them into our training and validation sets.
+    X_train, X_validation, y_train, y_validation = train_test_split(data_pairs, target_pairs,
+        test_size=10000, random_state=0)
 
-    for training_set, validation_set in split:
-        X_train = data[training_set]
-        y_train = target[training_set]
-
-        X_validation = data[validation_set]
-        y_validation = target[validation_set]
-
-    train["lfw_pairs"] = {
+    train = {
+        "file_path": constants.TRAINING_FILE,
         "data": X_train,
-        "target": y_train
+        "target": y_train,
     }
-    validation["lfw_pairs"] = {
+    validation = {
+        "file_path": constants.VALIDATION_FILE,
         "data": X_validation,
-        "target": y_validation
+        "target": y_validation,
     }
 
     return (train, validation)
 
-def generate_leveldb(file_path, lfw_pairs, channels, width, height):
-    print "\tGenerating LevelDB file at %s..." % file_path
+def generate_leveldb(file_path, data, target, channels, width, height):
+    print "\tGenerating MNIST LevelDB file at %s..." % file_path
     shutil.rmtree(file_path, ignore_errors=True)
     db = leveldb.LevelDB(file_path)
 
     batch = leveldb.WriteBatch()
     # The 'data' entry contains both pairs of images unrolled into a linear vector.
-    for idx, data in enumerate(lfw_pairs["data"]):
+    for idx, data in enumerate(data):
         # Each image pair is a top level key with a keyname like 00059999, in increasing
         # order starting from 00000000.
         key = siamese_utils.get_key(idx)
@@ -107,7 +102,7 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
         datum.width = width
         # Our pixels are float values, such as -3.370285 after being mean normalized.
         datum.float_data.extend(data.astype(float).flat)
-        datum.label = lfw_pairs["target"][idx]
+        datum.label = target[idx]
         value = datum.SerializeToString()
         db.Put(key, value)
 
@@ -126,30 +121,17 @@ def preprocess_data(data):
     return data
 
 def prepare_testing_cluster_data():
-    """
-    Load individual faces for 5 different people, rather than pairs. These faces are known
-    to have 10 or more images in the testing data.
-    """
     print "\tLoading testing cluster data..."
-    testing = fetch_lfw_people()
-    data = testing["images"]
-    labels = testing["target"]
-    label_names = testing["target_names"]
-    (m, height, width) = data.shape
+    mnist = fetch_mldata("MNIST original")
 
-    good_identities = [20, 52, 127, 210, 223]
-    indexes_to_keep = [idx for idx in range(m) if labels[idx] in good_identities]
-    data_to_keep = []
-    labels_to_keep = []
-    for i in range(len(indexes_to_keep)):
-        keep_me_idx = indexes_to_keep[i]
-        data_to_keep.append(data[keep_me_idx])
-        labels_to_keep.append(labels[keep_me_idx])
+    data = mnist["data"]
+    target = mnist["target"]
+    data, target = shuffle(data, target, random_state=0)
+    X_train, X_validation, y_train, y_validation = train_test_split(data, target,
+        test_size=10000, random_state=0)
 
-    data_to_keep = np.array(data_to_keep)
-
-    # Scale the data.
-    caffe_in = data_to_keep.reshape(len(data_to_keep), 1, height, width) * 0.00392156
+    # Scale and normalize the data.
+    caffe_in = X_validation.reshape(10000, 1, 28, 28) * 0.00390625
     caffe_in = preprocess_data(caffe_in)
 
-    return (caffe_in, labels_to_keep, good_identities)
+    return (caffe_in, y_validation)

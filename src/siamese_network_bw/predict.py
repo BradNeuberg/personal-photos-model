@@ -16,7 +16,7 @@ def test_cluster(weight_file=constants.TRAINED_WEIGHTS):
   Tests a few people to see how they cluster, producing an image file.
   """
   print "Generating test cluster..."
-  (data, labels, identities) = prepare_data.prepare_testing_cluster_data()
+  (data, labels) = prepare_data.prepare_testing_cluster_data()
 
   print "\tInitializing Caffe using weight file %s..." % (weight_file)
   caffe.set_mode_cpu()
@@ -28,17 +28,11 @@ def test_cluster(weight_file=constants.TRAINED_WEIGHTS):
   print "\tGraphing..."
   feat = out['feat']
   f = plt.figure(figsize=(16,9))
-  c = {
-    str(identities[0]): "#ff0000",
-    str(identities[1]): "#ffff00",
-    str(identities[2]): "#00ff00",
-    str(identities[3]): "#00ffff",
-    str(identities[4]): "#0000ff",
-  }
-  for i in range(len(feat)):
-    plt.plot(feat[i, 0], feat[i, 1], ".", c=c[str(labels[i])])
-
+  c = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff',
+       '#ff00ff', '#990000', '#999900', '#009900', '#009999']
+  for i in range(10):
+      plt.plot(feat[labels==i,0].flatten(), feat[labels==i,1].flatten(), '.', c=c[i])
+  plt.legend(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
   plt.grid()
-
   plt.savefig(constants.OUTPUT_CLUSTER_PATH)
   print("\t\tGraph saved to %s" % constants.OUTPUT_CLUSTER_PATH)
