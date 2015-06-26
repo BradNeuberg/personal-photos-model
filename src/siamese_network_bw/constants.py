@@ -50,4 +50,4 @@ CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
 # hyperparameter tuning.
-ARCHITECTURE = "Actual MNIST data and arch"
+ARCHITECTURE = "MNIST data; no mean; 10x random pairs no bleed"

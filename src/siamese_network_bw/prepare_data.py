@@ -40,43 +40,60 @@ def prepare_training_validation_data(mnist):
     target = mnist["target"]
     data, target = shuffle(data, target, random_state=0)
 
-    # Cluster the data into pairs.
-    data_pairs = []
-    target_pairs = []
-    num_pairs = len(data)
-    random.seed(0)
-    for idx in range(num_pairs):
-        image_1_idx = random.randint(0, num_pairs - 1)
-        image_1 = data[image_1_idx]
-        image_2_idx = random.randint(0, num_pairs - 1)
-        image_2 = data[image_2_idx]
-        same = None
-        if target[image_1_idx] == target[image_2_idx]:
-            same = 1
-        else:
-            same = 0
-        image = np.concatenate([image_1, image_2])
-        data_pairs.append(image)
-        target_pairs.append(same)
-    data_pairs = np.array(data_pairs)
-    target_pairs = np.array(target_pairs)
-
     # Split them into our training and validation sets.
-    X_train, X_validation, y_train, y_validation = train_test_split(data_pairs, target_pairs,
+    X_train, X_validation, Y_train, Y_validation = train_test_split(data, target,
         test_size=10000, random_state=0)
+
+    # Cluster the data into pairs.
+    X_train_pairs = []
+    Y_train_pairs = []
+    num_train_pairs = len(X_train)
+    random.seed(0)
+    for count in range(10 * num_train_pairs):
+        print "training count: %d" % count
+        pair_images(num_train_pairs, X_train, Y_train, X_train_pairs, Y_train_pairs)
+    X_train = np.array(X_train_pairs)
+    Y_train = np.array(Y_train_pairs)
+
+    X_validation_pairs = []
+    Y_validation_pairs = []
+    num_validation_pairs = len(X_validation)
+    for count in range(num_validation_pairs):
+        print "validation count: %d" % count
+        pair_images(num_validation_pairs, X_validation, Y_validation, X_validation_pairs,
+            Y_validation_pairs)
+    X_validation = np.array(X_validation_pairs)
+    Y_validation = np.array(Y_validation_pairs)
+
+    print "# of same training pairs: %d" % np.sum(Y_train)
+    print "# of same validation pairs: %d" % np.sum(Y_validation)
 
     train = {
         "file_path": constants.TRAINING_FILE,
         "data": X_train,
-        "target": y_train,
+        "target": Y_train,
     }
     validation = {
         "file_path": constants.VALIDATION_FILE,
         "data": X_validation,
-        "target": y_validation,
+        "target": Y_validation,
     }
 
     return (train, validation)
+
+def pair_images(num_pairs, X, Y, X_pairs, Y_pairs):
+    image_1_idx = random.randint(0, num_pairs - 1)
+    image_1 = X[image_1_idx]
+    image_2_idx = random.randint(0, num_pairs - 1)
+    image_2 = X[image_2_idx]
+    same = None
+    if Y[image_1_idx] == Y[image_2_idx]:
+        same = 1
+    else:
+        same = 0
+    image = np.concatenate([image_1, image_2])
+    X_pairs.append(image)
+    Y_pairs.append(same)
 
 def generate_leveldb(file_path, data, target, channels, width, height):
     print "\tGenerating MNIST LevelDB file at %s..." % file_path
