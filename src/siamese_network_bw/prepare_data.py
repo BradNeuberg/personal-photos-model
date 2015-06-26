@@ -105,8 +105,7 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
         datum.channels = channels
         datum.height = height
         datum.width = width
-        # Our pixels are float values, such as -3.370285 after being mean normalized.
-        datum.float_data.extend(data.astype(float).flat)
+        datum.data = data.tobytes()
         datum.label = lfw_pairs["target"][idx]
         value = datum.SerializeToString()
         db.Put(key, value)
@@ -119,7 +118,10 @@ def preprocess_data(data):
     training or testing time. 'data' is a numpy array of unrolled pixel vectors with
     two side by side facial images for each entry.
     """
-    data = siamese_utils.mean_normalize(data)
+    # Do nothing for now; testing on the MNIST dataset with our pipeline showed that not mean
+    # normalizing and storing our data as bytes, not floats, significantly improved clustering
+    # and generalization.
+    #data = siamese_utils.mean_normalize(data)
 
     # We don't scale it's values to be between 0 and 1 as our Caffe model will do that.
 
