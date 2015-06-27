@@ -2,86 +2,118 @@
 # Caffe.
 
 import shutil
+import random
 
 import numpy as np
-from sklearn.datasets import (
-    fetch_lfw_pairs,
-    fetch_lfw_people,
-)
+from sklearn.datasets import fetch_lfw_people
 from sklearn.cross_validation import ShuffleSplit
+from sklearn.utils import shuffle as sklearn_shuffle
 import leveldb
 from caffe_pb2 import Datum
 
 import constants as constants
 import siamese_network_bw.siamese_utils as siamese_utils
 
-def prepare_data():
+def prepare_data(write_leveldb=False):
+    """
+    Loads our training and validation data, shuffles them, pairs them, and optionally writes them
+    to LevelDB databases if 'write_leveldb' is True.
+    """
     print "Preparing data..."
-    print "\tLoading LFW data..."
 
-    # Each image is 47 (width) x 62 (height). There are 2200 training images, 6000 validation
-    # images, and 1000 test images; note though that we change the split between training and
-    # validation images later.
+    # Each image is 47 (width) x 62 (height). There are 13233 images total, which we will split
+    # into 80% training and 20% validation.
+    print "\tLoading LFW data..."
+    people = fetch_lfw_people()
+    data = people["data"]
+    target = people["target"]
+
+    # TODO: Bisect these into unique faces and ensure that faces don't leak across training and
+    # validation sets.
+
+    print "\tShuffling LFW data..."
+    (X_train, Y_train, X_validation, Y_validation) = shuffle(data, target)
+
+    # Cluster the data into pairs.
+    print "\tPairing off faces..."
+    X_train, Y_train = cluster_all_faces("\t\tTraining", X_train, Y_train, boost_size=10)
+    X_validation, Y_validation = cluster_all_faces("\t\tValidation", X_validation, Y_validation,
+        boost_size=1)
+
+    # TODO: Print out some statistics, like the number of same, number of different, and the
+    # ratio for these different data sets. Perhaps make a new statistics.py file for these.
+
     train = {
         "file_path": constants.TRAINING_FILE,
-        "lfw_pairs": fetch_lfw_pairs(subset="train")
+        "lfw_pairs": {
+            "data": X_train,
+            "target": Y_train,
+        }
     }
     validation = {
         "file_path": constants.VALIDATION_FILE,
-        "lfw_pairs": fetch_lfw_pairs(subset="10_folds")
-    }
-    testing = {
-        "file_path": constants.TESTING_FILE,
-        "lfw_pairs": fetch_lfw_pairs(subset="test")
-    }
-
-    m, channels, height, width = testing["lfw_pairs"].pairs.shape
-
-    testing["lfw_pairs"] = {
-        "data": testing["lfw_pairs"].data,
-        "target": testing["lfw_pairs"].target,
+        "lfw_pairs": {
+            "data": X_validation,
+            "target": Y_validation,
+        }
     }
 
-    print "\tShuffling & combining data..."
-    train, validation = prepare_training_validation_data(train, validation)
-
-    for entry in [train, validation, testing]:
-        generate_leveldb(entry["file_path"], entry["lfw_pairs"], channels, width, height)
+    channels = 2 # One channel for each image in the pair.
+    for entry in [train, validation]:
+        generate_leveldb(entry["file_path"], entry["lfw_pairs"], channels=channels,
+            width=constants.WIDTH, height=constants.HEIGHT)
 
     print "\tDone preparing data."
 
-def prepare_training_validation_data(train, validation):
-    """
-    By default there is a strange split between the training and validation sets;
-    the training set is 2200 images while the validation set is 6000 images. We'd rather
-    have the split roughly the other way (80/20).
-    """
+    return (train, validation)
 
-    train_pairs = train["lfw_pairs"]
-    validation_pairs = validation["lfw_pairs"]
-    data = np.concatenate((train_pairs.data, validation_pairs.data))
-    target = np.concatenate((train_pairs.target, validation_pairs.target))
-
-    # After the split we should have 6560 training images and 1640 validation images.
+def shuffle(data, target):
+    """
+    Shuffles our data and target into training and validation sets.
+    """
     split = ShuffleSplit(n=len(data), train_size=0.8, test_size=0.2, random_state=0)
 
     for training_set, validation_set in split:
         X_train = data[training_set]
-        y_train = target[training_set]
+        Y_train = target[training_set]
 
         X_validation = data[validation_set]
-        y_validation = target[validation_set]
+        Y_validation = target[validation_set]
 
-    train["lfw_pairs"] = {
-        "data": X_train,
-        "target": y_train
-    }
-    validation["lfw_pairs"] = {
-        "data": X_validation,
-        "target": y_validation
-    }
+    return (X_train, Y_train, X_validation, Y_validation)
 
-    return (train, validation)
+def cluster_all_faces(pair_name, X, Y, boost_size):
+    """
+    Pairs faces with data in X and targets in Y together, 'boosting' the data set by goinging
+    through it 'boost_size' times to amplify the amount of data. Returns our boosted data set
+    with paired faces and our target values with 1 for the same face and 0 otherwise.
+    """
+    X_pairs = []
+    Y_pairs = []
+    num_pairs = len(X)
+    for count in range(boost_size * num_pairs):
+        print "%s count: %d" % (pair_name, count)
+        pair_images(X, Y, X_pairs, Y_pairs)
+    return (np.array(X_pairs), np.array(Y_pairs))
+
+def pair_images(X, Y, X_pairs, Y_pairs):
+    """
+    Given data (X) and targets (Y), randomly pairs two images together and appends it to
+    the array X_pairs, adding 1 to Y_pairs if the images are the same and 0 otherwise.
+    """
+    num_pairs = len(X)
+    image_1_idx = random.randint(0, num_pairs - 1)
+    image_1 = X[image_1_idx]
+    image_2_idx = random.randint(0, num_pairs - 1)
+    image_2 = X[image_2_idx]
+    same = None
+    if Y[image_1_idx] == Y[image_2_idx]:
+        same = 1
+    else:
+        same = 0
+    image = np.concatenate([image_1, image_2])
+    X_pairs.append(image)
+    Y_pairs.append(same)
 
 def generate_leveldb(file_path, lfw_pairs, channels, width, height):
     print "\tGenerating LevelDB file at %s..." % file_path
@@ -127,31 +159,40 @@ def preprocess_data(data):
 
     return data
 
-def prepare_testing_cluster_data():
+def prepare_cluster_data():
     """
     Load individual faces for 5 different people, rather than pairs. These faces are known
     to have 10 or more images in the testing data.
     """
     print "\tLoading testing cluster data..."
-    testing = fetch_lfw_people()
-    data = testing["images"]
-    labels = testing["target"]
-    label_names = testing["target_names"]
-    (m, height, width) = data.shape
+    testing = fetch_lfw_people(min_faces_per_person=10)
+    data = testing["data"]
+    target = testing["target"]
+    identities = testing["target_names"]
+    data, target = sklearn_shuffle(data, target, random_state=0)
 
-    good_identities = [20, 52, 127, 210, 223]
-    indexes_to_keep = [idx for idx in range(m) if labels[idx] in good_identities]
+    # Extract five unique face identities we can work with.
+    good_identities = []
+    for idx in range(len(target)):
+        if target[idx] not in good_identities:
+            good_identities.append(target[idx])
+        if len(good_identities) == 5:
+            break
+
+    # Extract just the indexes with the five good faces we want to work with.
+    indexes_to_keep = [idx for idx in range(len(target)) if target[idx] in good_identities]
     data_to_keep = []
-    labels_to_keep = []
+    target_to_keep = []
     for i in range(len(indexes_to_keep)):
         keep_me_idx = indexes_to_keep[i]
         data_to_keep.append(data[keep_me_idx])
-        labels_to_keep.append(labels[keep_me_idx])
+        target_to_keep.append(target[keep_me_idx])
 
     data_to_keep = np.array(data_to_keep)
 
     # Scale the data.
-    caffe_in = data_to_keep.reshape(len(data_to_keep), 1, height, width) * 0.00392156
+    caffe_in = data_to_keep.reshape(len(data_to_keep), 1, constants.HEIGHT, constants.WIDTH) \
+        * 0.00390625
     caffe_in = preprocess_data(caffe_in)
 
-    return (caffe_in, labels_to_keep, good_identities)
+    return (caffe_in, target_to_keep, good_identities, identities)

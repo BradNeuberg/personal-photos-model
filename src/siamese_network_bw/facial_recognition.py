@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import os
+import random
 
 import constants as constants
 from prepare_data import prepare_data
@@ -32,8 +33,11 @@ def parse_command_line():
         print "export CAFFE_HOME=/usr/local/caffe"
         exit(1)
 
+    # Ensure the random number generator always starts from the same place for consistent tests.
+    random.seed(0)
+
     if args["prepare_data"] == True:
-        prepare_data()
+        prepare_data(write_leveldb=True)
     if args["visualize"] == True:
         visualize()
     if args["train"] == True:

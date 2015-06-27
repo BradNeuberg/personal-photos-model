@@ -21,7 +21,6 @@ LOG_DIR = ROOT_DIR + "/logs"
 
 TRAINING_FILE = ROOT_DIR + "/data/siamese_network_train_leveldb"
 VALIDATION_FILE = ROOT_DIR + "/data/siamese_network_validation_leveldb"
-TESTING_FILE = ROOT_DIR + "/data/siamese_network_test_leveldb"
 
 # The number to append to output files, such as output0001.log.
 OUTPUT_ENDING = determine_output_ending()
@@ -42,12 +41,11 @@ SOLVER_FILE = ROOT_DIR + "/model/siamese_solver.prototxt"
 TRAINED_MODEL = ROOT_DIR + "/model/siamese.prototxt"
 TRAINED_WEIGHTS = ROOT_DIR + "/model/trained_model.caffemodel"
 
-TRAINING_SIZE = 6560
-VALIDATION_SIZE = 1640
-TESTING_SIZE = 1000
+TRAINING_SIZE = 105859
+VALIDATION_SIZE = 2646
 
 CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
 # hyperparameter tuning.
-ARCHITECTURE = "B&W MNIST"
+ARCHITECTURE = "B&W MNIST; 10x boost custom pairs"
