@@ -63,7 +63,7 @@ def prepare_training_validation_data(train, validation):
     target = np.concatenate((train_pairs.target, validation_pairs.target))
 
     # After the split we should have 6560 training images and 1640 validation images.
-    split = ShuffleSplit(n=len(data), train_size=0.8, test_size=0.2)
+    split = ShuffleSplit(n=len(data), train_size=0.8, test_size=0.2, random_state=0)
 
     for training_set, validation_set in split:
         X_train = data[training_set]
