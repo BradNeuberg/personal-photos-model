@@ -8,7 +8,7 @@ layer {
     phase: TRAIN
   }
   transform_param {
-    scale: 0.00392156
+    scale: 0.00390625
   }
   data_param {
     source: "src/siamese_network_bw/data/siamese_network_train_leveldb"
@@ -24,7 +24,7 @@ layer {
     phase: TEST
   }
   transform_param {
-    scale: 0.00392156
+    scale: 0.00390625
   }
   data_param {
     source: "src/siamese_network_bw/data/siamese_network_validation_leveldb"
