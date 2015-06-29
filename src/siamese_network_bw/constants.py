@@ -41,9 +41,6 @@ SOLVER_FILE = ROOT_DIR + "/model/siamese_solver.prototxt"
 TRAINED_MODEL = ROOT_DIR + "/model/siamese.prototxt"
 TRAINED_WEIGHTS = ROOT_DIR + "/model/trained_model.caffemodel"
 
-TRAINING_SIZE = 105859
-VALIDATION_SIZE = 2646
-
 CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
