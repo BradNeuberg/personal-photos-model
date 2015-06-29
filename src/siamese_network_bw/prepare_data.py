@@ -36,7 +36,7 @@ def prepare_data(write_leveldb=False):
 
     # Cluster the data into pairs.
     print "\tPairing off faces..."
-    X_train, Y_train = cluster_all_faces("\t\tTraining", X_train, Y_train, boost_size=10)
+    X_train, Y_train = cluster_all_faces("\t\tTraining", X_train, Y_train, boost_size=20)
     X_validation, Y_validation = cluster_all_faces("\t\tValidation", X_validation, Y_validation,
         boost_size=1)
 
