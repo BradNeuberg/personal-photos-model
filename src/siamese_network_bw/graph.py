@@ -44,7 +44,7 @@ def get_hyperparameter_details(note=None):
     details = solver.read()
     lr = re.search("^base_lr:\s*([0-9.]+)$", details, re.MULTILINE).group(1)
     max_iter = re.search("^max_iter:\s*([0-9.]+)$", details, re.MULTILINE).group(1)
-    results = "(lr: %s; max_iter: %s; arch: %s" % (lr, max_iter, constants.ARCHITECTURE)
+    results = "(lr: %s; max_iter: %s; %s" % (lr, max_iter, constants.ARCHITECTURE)
 
     # Add any extra details into the graph if someone specified that on the command line.
     if note:
