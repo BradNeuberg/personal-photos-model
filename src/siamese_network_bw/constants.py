@@ -45,4 +45,4 @@ CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
 # hyperparameter tuning.
-ARCHITECTURE = "B&W MNIST; 20x boost custom pairs"
+ARCHITECTURE = "B&W; 20x boost; bigger filters + bigger hidden"
