@@ -11,18 +11,30 @@ def predict(img_1, img_2):
     print "Predicting..."
     # TODO!!! Implement!!!
 
-def test_cluster(weight_file=constants.TRAINED_WEIGHTS):
+def test_clusters(weight_file=constants.TRAINED_WEIGHTS):
     """
-    Tests a few people to see how they cluster, producing an image file.
+    Tests a few people to see how they cluster across the training and validation data, producing
+    image files.
     """
-    print "Generating cluster..."
-    (data, target, good_identities, all_identities) = prepare_data.prepare_cluster_data()
+    print "Generating cluster details..."
+    cluster_details = prepare_data.prepare_cluster_data()
 
     print "\tInitializing Caffe using weight file %s..." % (weight_file)
     caffe.set_mode_cpu()
     net = caffe.Net(constants.TRAINED_MODEL, weight_file, caffe.TEST)
 
-    print "\tRunning through network to generate cluster prediction..."
+    test_cluster(net, cluster_details["train"], "train")
+    test_cluster(net, cluster_details["validation"], "validation")
+
+def test_cluster(net, cluster_details, graph_name):
+    """
+    Actually tests the cluster on the network for a given data set, generating a graph.
+    """
+    data = cluster_details["data"]
+    target = cluster_details["target"]
+    good_identities = cluster_details["good_identities"]
+
+    print "\tRunning through network to generate cluster prediction for %s dataset..." % graph_name
     out = net.forward_all(data=data)
 
     print "\tGraphing..."
@@ -37,8 +49,7 @@ def test_cluster(weight_file=constants.TRAINED_WEIGHTS):
     }
     for i in range(len(feat)):
       plt.plot(feat[i, 0], feat[i, 1], ".", c=c[str(target[i])])
-    # TODO: Actually use the human friendly label names by displaying them in the graph.
     plt.grid()
 
-    plt.savefig(constants.OUTPUT_CLUSTER_PATH)
-    print("\t\tGraph saved to %s" % constants.OUTPUT_CLUSTER_PATH)
+    plt.savefig(constants.get_output_cluster_path(graph_name))
+    print("\t\tGraph saved to %s" % constants.get_output_cluster_path(graph_name))

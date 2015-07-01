@@ -14,10 +14,11 @@ from caffe_pb2 import Datum
 import constants as constants
 import siamese_network_bw.siamese_utils as siamese_utils
 
-def prepare_data(write_leveldb=False):
+def prepare_data(write_leveldb=True, pair_faces=True):
     """
-    Loads our training and validation data, shuffles them, pairs them, and optionally writes them
-    to LevelDB databases if 'write_leveldb' is True.
+    Loads our training and validation data, shuffles them, pairs them if 'pair_faces' is True, and
+    optionally writes them to LevelDB databases if 'write_leveldb' is True. If 'people' is provided
+    then it is used instead of re-fetching and loading from the LFW dataset.
     """
     print "Preparing data..."
 
@@ -34,34 +35,49 @@ def prepare_data(write_leveldb=False):
     print "\tShuffling LFW data..."
     (X_train, y_train, X_validation, y_validation) = shuffle(data, target)
 
-    # Cluster the data into pairs.
-    print "\tPairing off faces..."
-    X_train, y_train = cluster_all_faces("\t\tTraining", X_train, y_train, boost_size=20)
-    X_validation, y_validation = cluster_all_faces("\t\tValidation", X_validation, y_validation,
-        boost_size=1)
+    X_train_pairs = None
+    y_train_pairs = None
+    X_validation_pairs = None
+    y_validation_pairs = None
+    if pair_faces == True:
+        # Cluster the data into pairs.
+        print "\tPairing off faces..."
+        X_train_pairs, y_train_pairs = cluster_all_faces("\t\tTraining", X_train, y_train,
+            boost_size=20)
+        X_validation_pairs, y_validation_pairs = cluster_all_faces("\t\tValidation", X_validation,
+            y_validation, boost_size=1)
 
     # TODO: Print out some statistics, like the number of same, number of different, and the
     # ratio for these different data sets. Perhaps make a new statistics.py file for these.
 
     train = {
         "file_path": constants.TRAINING_FILE,
-        "lfw_pairs": {
+        "lfw": {
             "data": X_train,
             "target": y_train,
-        }
+        },
+        "lfw_pairs": {
+            "data": X_train_pairs,
+            "target": y_train_pairs,
+        },
     }
     validation = {
         "file_path": constants.VALIDATION_FILE,
-        "lfw_pairs": {
+        "lfw": {
             "data": X_validation,
             "target": y_validation,
-        }
+        },
+        "lfw_pairs": {
+            "data": X_validation_pairs,
+            "target": y_validation_pairs,
+        },
     }
 
-    channels = 2 # One channel for each image in the pair.
-    for entry in [train, validation]:
-        generate_leveldb(entry["file_path"], entry["lfw_pairs"], channels=channels,
-            width=constants.WIDTH, height=constants.HEIGHT)
+    if write_leveldb == True:
+        channels = 2 # One channel for each image in the pair.
+        for entry in [train, validation]:
+            generate_leveldb(entry["file_path"], entry["lfw_pairs"], channels=channels,
+                width=constants.WIDTH, height=constants.HEIGHT)
 
     print "\tDone preparing data."
 
@@ -164,17 +180,34 @@ def prepare_cluster_data():
     Load individual faces for 5 different people, rather than pairs. These faces are known
     to have 10 or more images in the testing data.
     """
-    print "\tLoading testing cluster data..."
-    testing = fetch_lfw_people(min_faces_per_person=10)
-    data = testing["data"]
-    target = testing["target"]
-    identities = testing["target_names"]
-    data, target = sklearn_shuffle(data, target, random_state=0)
+    print "\tPreparing cluster data..."
+    (train, validation) = prepare_data(write_leveldb=False, pair_faces=False)
 
+    train_cluster = get_cluster_data_for(data=train["lfw"]["data"], target=train["lfw"]["target"])
+    validation_cluster = get_cluster_data_for(data=validation["lfw"]["data"],
+        target=validation["lfw"]["target"])
+
+    return {
+        "train": train_cluster,
+        "validation": validation_cluster,
+    }
+
+def get_cluster_data_for(data, target):
+    """
+    Actually generates cluster data for the given data and target values.
+    """
     # Extract five unique face identities we can work with.
     good_identities = []
+    num_hits = {}
     for idx in range(len(target)):
-        if target[idx] not in good_identities:
+        # How many hits have we seen for this particular face so far?
+        identity = str(target[idx])
+        hits_for_face = num_hits.get(identity, 0)
+        hits_for_face = hits_for_face + 1
+        num_hits[identity] = hits_for_face
+
+        # Does this have enough faces for us to care, and have we not seen it before?
+        if hits_for_face >= 10 and target[idx] not in good_identities:
             good_identities.append(target[idx])
         if len(good_identities) == 5:
             break
@@ -195,4 +228,8 @@ def prepare_cluster_data():
         * 0.00390625
     caffe_in = preprocess_data(caffe_in)
 
-    return (caffe_in, target_to_keep, good_identities, identities)
+    return {
+        "data": caffe_in,
+        "target": target_to_keep,
+        "good_identities": good_identities,
+    }

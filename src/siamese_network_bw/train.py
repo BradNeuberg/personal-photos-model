@@ -25,7 +25,7 @@ def train(output_graphs, weight_file=None, note=None):
         # trained.
         if weight_file == None:
             weight_file = trained_weight_file
-        predict.test_cluster(weight_file)
+        predict.test_clusters(weight_file)
 
 def run_trainer():
     """

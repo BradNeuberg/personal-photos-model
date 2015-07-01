@@ -13,6 +13,13 @@ def determine_output_ending():
           return "%04d" % (idx)
         idx += 1
 
+def get_output_cluster_path(graph_name):
+    """
+    Generates a cluster image path name, using the given graph name to build it up. This graph
+    tests how well we are clustering faces.
+    """
+    return OUTPUT_LOG_PREFIX + "_" + graph_name + ".cluster.png"
+
 WIDTH = 47
 HEIGHT = 62
 
@@ -32,9 +39,6 @@ OUTPUT_LOG_PATH = OUTPUT_LOG_PREFIX + ".log"
 
 # Graph output file path.
 OUTPUT_GRAPH_PATH = OUTPUT_LOG_PREFIX + ".png"
-
-# Graph where we test clustering.
-OUTPUT_CLUSTER_PATH = OUTPUT_LOG_PREFIX + ".cluster.png"
 
 SOLVER_FILE = ROOT_DIR + "/model/siamese_solver.prototxt"
 
