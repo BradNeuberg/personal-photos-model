@@ -32,12 +32,12 @@ def prepare_data(write_leveldb=False):
     # validation sets.
 
     print "\tShuffling LFW data..."
-    (X_train, Y_train, X_validation, Y_validation) = shuffle(data, target)
+    (X_train, y_train, X_validation, y_validation) = shuffle(data, target)
 
     # Cluster the data into pairs.
     print "\tPairing off faces..."
-    X_train, Y_train = cluster_all_faces("\t\tTraining", X_train, Y_train, boost_size=20)
-    X_validation, Y_validation = cluster_all_faces("\t\tValidation", X_validation, Y_validation,
+    X_train, y_train = cluster_all_faces("\t\tTraining", X_train, y_train, boost_size=20)
+    X_validation, y_validation = cluster_all_faces("\t\tValidation", X_validation, y_validation,
         boost_size=1)
 
     # TODO: Print out some statistics, like the number of same, number of different, and the
@@ -47,14 +47,14 @@ def prepare_data(write_leveldb=False):
         "file_path": constants.TRAINING_FILE,
         "lfw_pairs": {
             "data": X_train,
-            "target": Y_train,
+            "target": y_train,
         }
     }
     validation = {
         "file_path": constants.VALIDATION_FILE,
         "lfw_pairs": {
             "data": X_validation,
-            "target": Y_validation,
+            "target": y_validation,
         }
     }
 
@@ -75,31 +75,31 @@ def shuffle(data, target):
 
     for training_set, validation_set in split:
         X_train = data[training_set]
-        Y_train = target[training_set]
+        y_train = target[training_set]
 
         X_validation = data[validation_set]
-        Y_validation = target[validation_set]
+        y_validation = target[validation_set]
 
-    return (X_train, Y_train, X_validation, Y_validation)
+    return (X_train, y_train, X_validation, y_validation)
 
-def cluster_all_faces(pair_name, X, Y, boost_size):
+def cluster_all_faces(pair_name, X, y, boost_size):
     """
-    Pairs faces with data in X and targets in Y together, 'boosting' the data set by goinging
+    Pairs faces with data in X and targets in y together, 'boosting' the data set by goinging
     through it 'boost_size' times to amplify the amount of data. Returns our boosted data set
     with paired faces and our target values with 1 for the same face and 0 otherwise.
     """
     X_pairs = []
-    Y_pairs = []
+    y_pairs = []
     num_pairs = len(X)
     for count in range(boost_size * num_pairs):
         print "%s count: %d" % (pair_name, count)
-        pair_images(X, Y, X_pairs, Y_pairs)
-    return (np.array(X_pairs), np.array(Y_pairs))
+        pair_images(X, y, X_pairs, y_pairs)
+    return (np.array(X_pairs), np.array(y_pairs))
 
-def pair_images(X, Y, X_pairs, Y_pairs):
+def pair_images(X, y, X_pairs, y_pairs):
     """
-    Given data (X) and targets (Y), randomly pairs two images together and appends it to
-    the array X_pairs, adding 1 to Y_pairs if the images are the same and 0 otherwise.
+    Given data (X) and targets (y), randomly pairs two images together and appends it to
+    the array X_pairs, adding 1 to y_pairs if the images are the same and 0 otherwise.
     """
     num_pairs = len(X)
     image_1_idx = random.randint(0, num_pairs - 1)
@@ -107,13 +107,13 @@ def pair_images(X, Y, X_pairs, Y_pairs):
     image_2_idx = random.randint(0, num_pairs - 1)
     image_2 = X[image_2_idx]
     same = None
-    if Y[image_1_idx] == Y[image_2_idx]:
+    if y[image_1_idx] == y[image_2_idx]:
         same = 1
     else:
         same = 0
     image = np.concatenate([image_1, image_2])
     X_pairs.append(image)
-    Y_pairs.append(same)
+    y_pairs.append(same)
 
 def generate_leveldb(file_path, lfw_pairs, channels, width, height):
     print "\tGenerating LevelDB file at %s..." % file_path
