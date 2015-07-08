@@ -29,6 +29,9 @@ def prepare_data(write_leveldb=True, pair_faces=True):
     data = people["data"]
     target = people["target"]
 
+    print "\tFiltering faces for consistent counts..."
+    (data, target) = ensure_face_count(data, target)
+
     # TODO: Bisect these into unique faces and ensure that faces don't leak across training and
     # validation sets.
 
@@ -97,6 +100,39 @@ def shuffle(data, target):
         y_validation = target[validation_set]
 
     return (X_train, y_train, X_validation, y_validation)
+
+def ensure_face_count(data, target, min_count=3, max_count=10):
+    """
+    Goes through faces in the data and ensures that we never have less than
+    'min_count' or more than 'max_count'.
+    """
+    data_results = []
+    target_results = []
+
+    # First build up lookup table going from every face number to each image.
+    faces = {}
+    for idx in xrange(data.shape[0]):
+        person = target[idx]
+        entry = faces.get(str(person), [])
+        entry.append(data[idx])
+        faces[str(person)] = entry
+
+    # Now only choose ones that have at least 'min_count' number of entries, and limit those that do
+    # to just 'max_count'.
+    for key in faces:
+        entry = faces[key]
+        if len(entry) < min_count:
+            continue
+        for idx in xrange(len(entry)):
+            if idx == max_count:
+                break
+            data_results.append(entry[idx])
+            target_results.append(key)
+
+    print "\t\tFiltered faces to min_count=%d and max_count=%d, leaving a total of %d image faces" \
+        % (min_count, max_count, len(data_results))
+
+    return (np.asarray(data_results), np.asarray(target_results))
 
 def cluster_all_faces(pair_name, X, y, boost_size):
     """
@@ -192,10 +228,11 @@ def prepare_cluster_data():
         "validation": validation_cluster,
     }
 
-def get_cluster_data_for(data, target):
+def get_cluster_data_for(data, target, min_count=5):
     """
     Actually generates cluster data for the given data and target values.
     """
+    # TODO: We might not need this anymore now that we are ensuring we have enough faces.
     # Extract five unique face identities we can work with.
     good_identities = []
     num_hits = {}
@@ -207,7 +244,7 @@ def get_cluster_data_for(data, target):
         num_hits[identity] = hits_for_face
 
         # Does this have enough faces for us to care, and have we not seen it before?
-        if hits_for_face >= 10 and target[idx] not in good_identities:
+        if hits_for_face >= min_count and target[idx] not in good_identities:
             good_identities.append(target[idx])
         if len(good_identities) == 5:
             break
