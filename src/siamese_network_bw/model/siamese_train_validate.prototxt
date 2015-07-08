@@ -12,7 +12,7 @@ layer {
   }
   data_param {
     source: "src/siamese_network_bw/data/siamese_network_train_leveldb"
-    batch_size: 64
+    batch_size: 100
   }
 }
 layer {

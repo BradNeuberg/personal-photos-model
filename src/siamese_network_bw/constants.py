@@ -20,12 +20,16 @@ def get_output_cluster_path(graph_name):
     """
     return OUTPUT_LOG_PREFIX + "_" + graph_name + ".cluster.png"
 
-WIDTH = 47
-HEIGHT = 62
+WIDTH = 58
+HEIGHT = 58
 
 ROOT_DIR = "./src/siamese_network_bw"
 LOG_DIR = ROOT_DIR + "/logs"
 
+DATASET_DIR = "./datasets"
+LFW_DATASET_DIR = DATASET_DIR + "/lfw-deepfunneled"
+
+PICKLE_FILE = ROOT_DIR + "/data/siamese_network.pkl"
 TRAINING_FILE = ROOT_DIR + "/data/siamese_network_train_leveldb"
 VALIDATION_FILE = ROOT_DIR + "/data/siamese_network_validation_leveldb"
 
@@ -49,4 +53,4 @@ CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
 # hyperparameter tuning.
-ARCHITECTURE = "B&W; 20x boost; bigger filters + bigger hidden; min: 3, max: 10"
+ARCHITECTURE = "B&W; no boost; bigger filters/hidden; deep funnel; batch 100"

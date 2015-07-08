@@ -3,34 +3,40 @@
 
 import shutil
 import random
+import glob
 
+from PIL import Image
 import numpy as np
 from sklearn.datasets import fetch_lfw_people
 from sklearn.cross_validation import ShuffleSplit
 from sklearn.utils import shuffle as sklearn_shuffle
+from sklearn.externals import joblib
 import leveldb
 from caffe_pb2 import Datum
 
 import constants as constants
 import siamese_network_bw.siamese_utils as siamese_utils
 
-def prepare_data(write_leveldb=True, pair_faces=True):
+def prepare_data(write_leveldb=True, pair_faces=True, use_pickle=False):
     """
     Loads our training and validation data, shuffles them, pairs them if 'pair_faces' is True, and
-    optionally writes them to LevelDB databases if 'write_leveldb' is True. If 'people' is provided
-    then it is used instead of re-fetching and loading from the LFW dataset.
+    optionally writes them to LevelDB databases if 'write_leveldb' is True. If 'use_pickle' is
+    True, we load our data set from a previously pickled set of faces.
     """
     print "Preparing data..."
 
-    # Each image is 47 (width) x 62 (height). There are 13233 images total, which we will split
+    if use_pickle == True:
+        print "\tLoading pickled LFW data..."
+        return joblib.load(constants.PICKLE_FILE)
+
+    # Each image is 58 (width) x 58 (height). There are 13233 images total, which we will split
     # into 80% training and 20% validation.
     print "\tLoading LFW data..."
-    people = fetch_lfw_people()
-    data = people["data"]
-    target = people["target"]
+    (data, target) = load_lfw()
 
-    print "\tFiltering faces for consistent counts..."
-    (data, target) = ensure_face_count(data, target)
+    # Disable this for now.
+    #print "\tFiltering faces for consistent counts..."
+    #(data, target) = ensure_face_count(data, target)
 
     # TODO: Bisect these into unique faces and ensure that faces don't leak across training and
     # validation sets.
@@ -46,7 +52,7 @@ def prepare_data(write_leveldb=True, pair_faces=True):
         # Cluster the data into pairs.
         print "\tPairing off faces..."
         X_train_pairs, y_train_pairs = cluster_all_faces("\t\tTraining", X_train, y_train,
-            boost_size=20)
+            boost_size=1)
         X_validation_pairs, y_validation_pairs = cluster_all_faces("\t\tValidation", X_validation,
             y_validation, boost_size=1)
 
@@ -79,12 +85,44 @@ def prepare_data(write_leveldb=True, pair_faces=True):
     if write_leveldb == True:
         channels = 2 # One channel for each image in the pair.
         for entry in [train, validation]:
+            print "\t\tWriting leveldb database..."
             generate_leveldb(entry["file_path"], entry["lfw_pairs"], channels=channels,
                 width=constants.WIDTH, height=constants.HEIGHT)
+
+    print "\tSaving and pickling LFW data..."
+    joblib.dump((train, validation), constants.PICKLE_FILE)
 
     print "\tDone preparing data."
 
     return (train, validation)
+
+def load_lfw():
+    """
+    Loads and returns our LFW dataset.
+    """
+    # Don't use Scikit's LFW data for now.
+    # people = fetch_lfw_people()
+    # data = people["data"]
+    # target = people["target"]
+
+    # The directory names are our targets, while individual files inside that directory are the
+    # faces for that target.
+    data = []
+    target = []
+    for (target_idx, target_name) in enumerate(glob.glob(constants.LFW_DATASET_DIR + "/*")):
+        for image_filename in glob.glob(target_name + "/*"):
+            print "\t\tOpening %s" % image_filename
+            im = Image.open(image_filename, "r")
+            # Convert to greyscale.
+            im = im.convert("L")
+            # TODO: Crop image to 58x58 instead of resizing based on the coordinates of the two eye
+            # centers.
+            im.thumbnail((58, 58), Image.ANTIALIAS)
+            im = np.asarray(im.getdata(), dtype=np.uint8)
+            data.append(im)
+            target.append(target_idx)
+
+    return (np.asarray(data), np.asarray(target))
 
 def shuffle(data, target):
     """
@@ -217,18 +255,21 @@ def prepare_cluster_data():
     to have 10 or more images in the testing data.
     """
     print "\tPreparing cluster data..."
-    (train, validation) = prepare_data(write_leveldb=False, pair_faces=False)
+    (train, validation) = prepare_data(write_leveldb=False, pair_faces=False, use_pickle=True)
 
     train_cluster = get_cluster_data_for(data=train["lfw"]["data"], target=train["lfw"]["target"])
     validation_cluster = get_cluster_data_for(data=validation["lfw"]["data"],
         target=validation["lfw"]["target"])
+
+    print "\t\tTraining cluster, # of samples: %d" % train_cluster["data"].shape[0]
+    print "\t\tValidation cluster, # of samples: %d" % validation_cluster["data"].shape[0]
 
     return {
         "train": train_cluster,
         "validation": validation_cluster,
     }
 
-def get_cluster_data_for(data, target, min_count=5):
+def get_cluster_data_for(data, target, min_count=10):
     """
     Actually generates cluster data for the given data and target values.
     """
