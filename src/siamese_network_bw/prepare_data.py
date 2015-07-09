@@ -36,7 +36,7 @@ def prepare_data(write_leveldb=True, pair_faces=True, use_pickle=False):
 
     # Disable this for now.
     #print "\tFiltering faces for consistent counts..."
-    #(data, target) = ensure_face_count(data, target)
+    (data, target) = ensure_face_count(data, target)
 
     # TODO: Bisect these into unique faces and ensure that faces don't leak across training and
     # validation sets.
@@ -50,11 +50,13 @@ def prepare_data(write_leveldb=True, pair_faces=True, use_pickle=False):
     y_validation_pairs = None
     if pair_faces == True:
         # Cluster the data into pairs.
-        print "\tPairing off faces..."
+        print "\tPairing off training faces..."
         X_train_pairs, y_train_pairs = cluster_all_faces("\t\tTraining", X_train, y_train,
             boost_size=1)
+        print "\tPairing off validation faces..."
         X_validation_pairs, y_validation_pairs = cluster_all_faces("\t\tValidation", X_validation,
-            y_validation, boost_size=1)
+            y_validation, boost_size=20)
+        print "\tFinished pairing!"
 
     # TODO: Print out some statistics, like the number of same, number of different, and the
     # ratio for these different data sets. Perhaps make a new statistics.py file for these.
@@ -139,7 +141,7 @@ def shuffle(data, target):
 
     return (X_train, y_train, X_validation, y_validation)
 
-def ensure_face_count(data, target, min_count=3, max_count=10):
+def ensure_face_count(data, target, min_count=100, max_count=2000):
     """
     Goes through faces in the data and ensures that we never have less than
     'min_count' or more than 'max_count'.
@@ -174,16 +176,30 @@ def ensure_face_count(data, target, min_count=3, max_count=10):
 
 def cluster_all_faces(pair_name, X, y, boost_size):
     """
-    Pairs faces with data in X and targets in y together, 'boosting' the data set by goinging
+    Pairs faces with data in X and targets in y together, 'boosting' the data set by going
     through it 'boost_size' times to amplify the amount of data. Returns our boosted data set
     with paired faces and our target values with 1 for the same face and 0 otherwise.
     """
     X_pairs = []
     y_pairs = []
     num_pairs = len(X)
-    for count in range(boost_size * num_pairs):
-        print "%s count: %d" % (pair_name, count)
-        pair_images(X, y, X_pairs, y_pairs)
+    print "num_pairs: %d" % num_pairs
+    for image_1_idx in range(num_pairs):
+        image_1 = X[image_1_idx]
+        for image_2_idx in range(num_pairs):
+            print "image_1_idx: %d, image_2_idx: %d" % (image_1_idx, image_2_idx)
+            image_2 = X[image_2_idx]
+            same = None
+            if y[image_1_idx] == y[image_2_idx]:
+                same = 1
+            else:
+                same = 0
+            image = np.concatenate([image_1, image_2])
+            X_pairs.append(image)
+            y_pairs.append(same)
+
+    print "Produced X_pairs: %d" % len(X_pairs)
+
     return (np.array(X_pairs), np.array(y_pairs))
 
 def pair_images(X, y, X_pairs, y_pairs):
@@ -211,6 +227,7 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
     db = leveldb.LevelDB(file_path)
 
     batch = leveldb.WriteBatch()
+    commit_every = 500000
     # The 'data' entry contains both pairs of images unrolled into a linear vector.
     for idx, data in enumerate(lfw_pairs["data"]):
         # Each image pair is a top level key with a keyname like 00059999, in increasing
@@ -232,7 +249,13 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
         value = datum.SerializeToString()
         db.Put(key, value)
 
-    db.Write(batch, sync = True)
+        if idx % commit_every == 0:
+            print "Comitting batch %d..." % (idx/commit_every)
+            db.Write(batch, sync=True)
+            del batch
+            batch = leveldb.WriteBatch()
+
+    db.Write(batch, sync=True)
 
 def preprocess_data(data):
     """
