@@ -4,7 +4,7 @@ import os
 import random
 
 import constants as constants
-from prepare_data import prepare_data
+from prepare_data import WebFace
 from train import train
 from predict import predict
 from visualize import visualize
@@ -36,12 +36,16 @@ def parse_command_line():
     # Ensure the random number generator always starts from the same place for consistent tests.
     random.seed(0)
 
+    webface = WebFace()
+
     if args["prepare_data"] == True:
-        prepare_data(write_leveldb=True)
+        webface.load_data()
+        webface.pair_data()
     if args["visualize"] == True:
+        # TODO: Adapt this to WebFace, not just LFW.
         visualize()
     if args["train"] == True:
-        train(args["graph"], weight_file=args["weights"], note=args["note"])
+        train(args["graph"], data=webface, weight_file=args["weights"], note=args["note"])
     if args["is_same"] != None:
         # TODO: Fill this out once we have a threshold and neural network trained.
         images = args["is_same"]

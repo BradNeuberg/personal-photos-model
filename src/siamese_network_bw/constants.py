@@ -27,9 +27,11 @@ ROOT_DIR = "./src/siamese_network_bw"
 LOG_DIR = ROOT_DIR + "/logs"
 
 DATASET_DIR = "./datasets"
-LFW_DATASET_DIR = DATASET_DIR + "/lfw-deepfunneled"
 
-PICKLE_FILE = ROOT_DIR + "/data/siamese_network.pkl"
+LFW_DATASET_DIR = DATASET_DIR + "/CASIA-WebFace/Normalized_Faces/lfw/100_25"
+WEBFACE_DATASET_DIR = DATASET_DIR + "/CASIA-WebFace/Normalized_Faces/webface/100"
+
+PICKLE_FILE = ROOT_DIR + "/data/siamese_network_raw.pkl"
 TRAINING_FILE = ROOT_DIR + "/data/siamese_network_train_leveldb"
 VALIDATION_FILE = ROOT_DIR + "/data/siamese_network_validation_leveldb"
 
@@ -53,4 +55,4 @@ CAFFE_HOME = os.environ.get("CAFFE_HOME")
 
 # Architecture string that will appear on graphs; good for relatively stable
 # hyperparameter tuning.
-ARCHITECTURE = "B&W; no boost; bigger arch; deep funnel; min: 50; all paired"
+ARCHITECTURE = "B&W; deep funnel; all paired from webface subset"

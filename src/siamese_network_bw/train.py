@@ -9,7 +9,7 @@ import constants as constants
 import graph as graph
 import predict as predict
 
-def train(output_graphs, weight_file=None, note=None):
+def train(output_graphs, data=None, weight_file=None, note=None):
     print("Training data, generating graphs: %r" % output_graphs)
 
     run_trainer()
@@ -25,7 +25,7 @@ def train(output_graphs, weight_file=None, note=None):
         # trained.
         if weight_file == None:
             weight_file = trained_weight_file
-        predict.test_clusters(weight_file)
+        predict.test_clusters(data, weight_file)
 
 def run_trainer():
     """

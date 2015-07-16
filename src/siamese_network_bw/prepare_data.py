@@ -1,15 +1,12 @@
-# Downloads the LFW (Labeled Faces in the Wild) dataset and converts it to an LMDB database for
-# Caffe.
-
-import shutil
-import random
+import os
 import glob
+import random
+import shutil
 
 from PIL import Image
 import numpy as np
-from sklearn.datasets import fetch_lfw_people
-from sklearn.cross_validation import ShuffleSplit
-from sklearn.utils import shuffle as sklearn_shuffle
+from sklearn.cross_validation import train_test_split
+from sklearn.utils import shuffle
 from sklearn.externals import joblib
 import leveldb
 from caffe_pb2 import Datum
@@ -17,235 +14,312 @@ from caffe_pb2 import Datum
 import constants as constants
 import siamese_network_bw.siamese_utils as siamese_utils
 
-def prepare_data(write_leveldb=True, pair_faces=True, use_pickle=False):
-    """
-    Loads our training and validation data, shuffles them, pairs them if 'pair_faces' is True, and
-    optionally writes them to LevelDB databases if 'write_leveldb' is True. If 'use_pickle' is
-    True, we load our data set from a previously pickled set of faces.
-    """
-    print "Preparing data..."
+# We currently restrict ourselves to a subset of the WebFace data. This flag controls
+# how many total non-paired faces we pull from this dataset. We currently keep it about the
+# same size as LFW.
+MAX_FACES = 13000
 
-    if use_pickle == True:
-        print "\tLoading pickled LFW data..."
-        return joblib.load(constants.PICKLE_FILE)
+class WebFace:
+  """
+  Handles loading, pairing, and clustering our data from the WebFace dataset. We currently
+  only work with a subset of this dataset for performance reasons.
+  """
 
-    # Each image is 58 (width) x 58 (height). There are 13233 images total, which we will split
-    # into 80% training and 20% validation.
-    print "\tLoading LFW data..."
-    (data, target) = load_lfw()
-
-    # Disable this for now.
-    #print "\tFiltering faces for consistent counts..."
-    (data, target) = ensure_face_count(data, target)
-
-    # TODO: Bisect these into unique faces and ensure that faces don't leak across training and
-    # validation sets.
-
-    print "\tShuffling LFW data..."
-    (X_train, y_train, X_validation, y_validation) = shuffle(data, target)
-
-    X_train_pairs = None
-    y_train_pairs = None
-    X_validation_pairs = None
-    y_validation_pairs = None
-    if pair_faces == True:
-        # Cluster the data into pairs.
-        print "\tPairing off training faces..."
-        X_train_pairs, y_train_pairs = cluster_all_faces("\t\tTraining", X_train, y_train,
-            boost_size=1)
-        print "\tPairing off validation faces..."
-        X_validation_pairs, y_validation_pairs = cluster_all_faces("\t\tValidation", X_validation,
-            y_validation, boost_size=20)
-        print "\tFinished pairing!"
-
-    # TODO: Print out some statistics, like the number of same, number of different, and the
-    # ratio for these different data sets. Perhaps make a new statistics.py file for these.
-
-    train = {
-        "file_path": constants.TRAINING_FILE,
-        "lfw": {
-            "data": X_train,
-            "target": y_train,
-        },
-        "lfw_pairs": {
-            "data": X_train_pairs,
-            "target": y_train_pairs,
-        },
+  def __init__(self):
+    # Contains our non-paired images ("data"), along with their correct targets ("target").
+    self._train = {
+      "data": [],
+      "target": [],
     }
-    validation = {
-        "file_path": constants.VALIDATION_FILE,
-        "lfw": {
-            "data": X_validation,
-            "target": y_validation,
-        },
-        "lfw_pairs": {
-            "data": X_validation_pairs,
-            "target": y_validation_pairs,
-        },
+    self._validation = {
+      "data": [],
+      "target": [],
+    }
+    self._test = {
+      "data": [],
+      "target": [],
     }
 
-    if write_leveldb == True:
-        channels = 2 # One channel for each image in the pair.
-        for entry in [train, validation]:
-            print "\t\tWriting leveldb database..."
-            generate_leveldb(entry["file_path"], entry["lfw_pairs"], channels=channels,
-                width=constants.WIDTH, height=constants.HEIGHT)
+    # Contains training pairs of images ("data"), along with a 1 if they are the same person
+    # or a zero if they are not ("target").
+    self._train_pairs = {
+      "data": [],
+      "target": [],
+    }
 
-    print "\tSaving and pickling LFW data..."
-    joblib.dump((train, validation), constants.PICKLE_FILE)
+    self._loaded = False
 
-    print "\tDone preparing data."
-
-    return (train, validation)
-
-def load_lfw():
+  def is_loaded(self):
     """
-    Loads and returns our LFW dataset.
+    Whether we have loaded our raw, single images and targets into memory. If we haven't,
+    load_data() should be called.
     """
-    # Don't use Scikit's LFW data for now.
-    # people = fetch_lfw_people()
-    # data = people["data"]
-    # target = people["target"]
+    return self._loaded
 
-    # The directory names are our targets, while individual files inside that directory are the
-    # faces for that target.
+  def load_data(self):
+    """
+    Loads our raw face images in and divides them into our training, validation, and
+    testing slices.
+    """
+    print "Loading data..."
+
+    if os.path.isfile(constants.PICKLE_FILE):
+      self._load_pickled_data()
+      return
+
+    print "\tNo pickled data file available, preparing raw data..."
+    identities = self._get_available_identities()
+    total_images = 0
+    # Keep randomly choosing people until we hit our total number of images to subset.
+    while total_images < MAX_FACES:
+      person = random.randint(0, len(identities) - 1)
+      target_identity = identities[person]
+      # Make sure we don't get duplicates for this person.
+      del identities[person]
+
+      # Now that we have a person, get all of their images and pre-process them.
+      total_images = self._process_images_for_target(target_identity, total_images)
+
+    # Now that we are done, shuffle all of our datasets.
+    self._shuffle_all_faces()
+
+    # Now pickle this out to the filesystem.
+    self._save_pickled_data()
+
+    self._loaded = True
+
+  def pair_data(self):
+    """
+    Efficiently pairs every possible positive and negative combination of the faces
+    in the training and validation data, persisting them to disk as LevelDB files.
+    """
+    print "Pairing faces..."
+
+    # Shuffle and pair our faces across the training and validation data sets.
+    (train_pairs_data, train_pairs_target) = self._pair_specific_data(
+      self._train["data"], self._train["target"], "train")
+    (validation_pairs_data, validation_pairs_target) = self._pair_specific_data(
+      self._validation["data"], self._validation["target"], "validation")
+
+    # Write them out in batches to our LevelDB files.
+    self._generate_leveldb(constants.TRAINING_FILE, train_pairs_data, train_pairs_target,
+      self._train["data"])
+    self._generate_leveldb(constants.VALIDATION_FILE, validation_pairs_data,
+      validation_pairs_target, self._validation["data"])
+
+  def get_clustered_faces(self):
+    """
+    For several different people, returns images for these along with their targets, for
+    both the training and validation data. This makes it easy to test these faces to see
+    how they cluster.
+    """
+    if not self.is_loaded():
+      self._load_pickled_data()
+
+    print "Getting clustered faces..."
+    # Since the WebFace dataset is fairly balanced, we can simply grab several random faces.
+    train_cluster = self._get_cluster_data_for(self._train["data"], self._train["target"])
+    validation_cluster = self._get_cluster_data_for(self._validation["data"],
+        self._validation["target"])
+
+    print "\t\tTraining cluster, # of samples: %d" % train_cluster["data"].shape[0]
+    print "\t\tValidation cluster, # of samples: %d" % validation_cluster["data"].shape[0]
+
+    return {
+        "train": train_cluster,
+        "validation": validation_cluster,
+    }
+
+  def _get_cluster_data_for(self, data, target):
+    """
+    Actually generates cluster data for the given data and target values.
+    """
+    data_to_keep = []
+    target_to_keep = []
+    good_identities = []
+    identities_to_keep = {}
+    print "-------_get_cluster_data_for"
+    print "len(data): %d" % len(data)
+    for idx in range(len(data)):
+      person = target[idx]
+      if person in identities_to_keep or len(good_identities) < 5:
+        data_to_keep.append(data[idx])
+        target_to_keep.append(target[idx])
+        if person not in identities_to_keep:
+          good_identities.append(person)
+          identities_to_keep[person] = True
+
+    data_to_keep = np.array(data_to_keep)
+    target_to_keep = np.array(target_to_keep)
+
+    # Scale the data.
+    data_to_keep = data_to_keep.reshape(len(data_to_keep), 1, constants.HEIGHT, constants.WIDTH) \
+        * 0.00390625
+    data_to_keep = self._preprocess_data(data_to_keep)
+
+    return {
+      "data": data_to_keep,
+      "target": target_to_keep,
+      "good_identities": good_identities,
+    }
+
+  def _pair_specific_data(self, single_data, single_target, data_name):
+    """
+    Generates pairs for the specific data and targets passed in.
+    """
+    print "\tPairing %s data..." % data_name
+    pairs_data = []
+    pairs_target = []
+
+    # Just work with index references, rather than the actual images, for performance and memory
+    # reasons, as there will be too many pairs to fit into memory at once.
+    for image_1_idx in range(len(single_data)):
+      for image_2_idx in range(len(single_data)):
+        pairs_data.append((image_1_idx, image_2_idx))
+        same = None
+        if single_target[image_1_idx] == single_target[image_2_idx]:
+          same = 1
+        else:
+          same = 0
+        pairs_target.append(same)
+
+    # Now shuffle these.
+    (pairs_data, pairs_target) = shuffle(pairs_data, pairs_target, random_state=0)
+
+    return (pairs_data, pairs_target)
+
+  def _load_pickled_data(self):
+    """
+    Load's previously pickled raw non-paired image data and targets from the file system
+    so we don't have to pre-process them again. Significantly improves performance.
+    """
+    print "\tLoading pickled data file..."
+    data = joblib.load(constants.PICKLE_FILE)
+    self._train = data["train"]
+    self._validation = data["validation"]
+    self._test = data["test"]
+    self._loaded = True
+
+  def _save_pickled_data(self):
+    print "\tSaving pickled data..."
+    data = {
+      "train": self._train,
+      "validation": self._validation,
+      "test": self._test,
+    }
+    joblib.dump(data, constants.PICKLE_FILE)
+
+  def _get_available_identities(self):
+    """
+    Gets the list of unique person identities available in the WebFace dataset.
+    """
+    identities = []
+    for subdir in glob.glob(os.path.join(constants.WEBFACE_DATASET_DIR, "*")):
+      subdir = os.path.basename(subdir)
+      identities.append(subdir)
+
+    return identities
+
+  def _process_images_for_target(self, target_identity, total_images):
+    """
+    Takes all the face images for a single person, loads them, and pre-processes them such as
+    scaling or color conversion.
+    """
+    print "\t\tProcessing images for target face identity %s" % target_identity
+    dir_with_images = os.path.join(constants.WEBFACE_DATASET_DIR, target_identity)
     data = []
     target = []
-    for (target_idx, target_name) in enumerate(glob.glob(constants.LFW_DATASET_DIR + "/*")):
-        for image_filename in glob.glob(target_name + "/*"):
-            print "\t\tOpening %s" % image_filename
-            im = Image.open(image_filename, "r")
-            # Convert to greyscale.
-            im = im.convert("L")
-            # TODO: Crop image to 58x58 instead of resizing based on the coordinates of the two eye
-            # centers.
-            im.thumbnail((58, 58), Image.ANTIALIAS)
-            im = np.asarray(im.getdata(), dtype=np.uint8)
-            data.append(im)
-            target.append(target_idx)
+    for image_file in glob.glob(os.path.join(dir_with_images, "*.*")):
+      total_images = total_images + 1
+      im = Image.open(image_file)
+      # Convert to greyscale.
+      im = im.convert("L")
+      # TODO: Crop image instead of resizing based on the coordinates of the two eye centers.
+      im.thumbnail((constants.WIDTH, constants.HEIGHT), Image.ANTIALIAS)
+      im = np.asarray(im.getdata(), dtype=np.uint8)
+      data.append(im)
+      target.append(target_identity)
 
-    return (np.asarray(data), np.asarray(target))
+    # Shuffle data into training and validation sets, then further subdivide the validation
+    # set into testing data.
+    self._shuffle_images_for_target(data, target)
 
-def shuffle(data, target):
+    return total_images
+
+  def _shuffle_images_for_target(self, data, target):
     """
-    Shuffles our data and target into training and validation sets.
+    Takes all the non-paired images for a given person, slices them into training, validation, and
+    training sets, and shuffles within each of these sets.
     """
-    split = ShuffleSplit(n=len(data), train_size=0.8, test_size=0.2, random_state=0)
+    # train_test_split can only partition into two sets, so we have to partition into two sets, then
+    # further partition the validation set into a test set.
+    (train_data, other_data, train_target, other_target) = train_test_split(data, target,
+      train_size=0.7, test_size=0.3, random_state=0)
+    self._train["data"].extend(train_data)
+    self._train["target"].extend(train_target)
 
-    for training_set, validation_set in split:
-        X_train = data[training_set]
-        y_train = target[training_set]
+    (validation_data, test_data, validation_target, test_target) = train_test_split(other_data,
+      other_target, train_size=0.9, test_size=0.1, random_state=0)
+    self._validation["data"].extend(validation_data)
+    self._validation["target"].extend(validation_target)
+    self._test["data"].extend(test_data)
+    self._test["target"].extend(test_target)
 
-        X_validation = data[validation_set]
-        y_validation = target[validation_set]
-
-    return (X_train, y_train, X_validation, y_validation)
-
-def ensure_face_count(data, target, min_count=100, max_count=2000):
+  def _shuffle_all_faces(self):
     """
-    Goes through faces in the data and ensures that we never have less than
-    'min_count' or more than 'max_count'.
+    Once we have all the non-paired images for the subset of WebFace we are working with, shuffles
+    all the values inside each of the major slices for this (i.e. shuffle all the training data,
+    shuffle all the validation data, and shuffle all the testing data.)
     """
-    data_results = []
-    target_results = []
+    print "\tShuffling all faces across all data sets..."
+    (train_data, train_target) = shuffle(self._train["data"], self._train["target"], random_state=0)
+    self._train["data"] = train_data
+    self._train["target"] = train_target
 
-    # First build up lookup table going from every face number to each image.
-    faces = {}
-    for idx in xrange(data.shape[0]):
-        person = target[idx]
-        entry = faces.get(str(person), [])
-        entry.append(data[idx])
-        faces[str(person)] = entry
+    (validation_data, validation_target) = shuffle(self._validation["data"],
+      self._validation["target"], random_state=0)
+    self._validation["data"] = validation_data
+    self._validation["target"] = validation_target
 
-    # Now only choose ones that have at least 'min_count' number of entries, and limit those that do
-    # to just 'max_count'.
-    for key in faces:
-        entry = faces[key]
-        if len(entry) < min_count:
-            continue
-        for idx in xrange(len(entry)):
-            if idx == max_count:
-                break
-            data_results.append(entry[idx])
-            target_results.append(key)
+    (test_data, test_target) = shuffle(self._test["data"], self._test["target"], random_state=0)
+    self._test["data"] = test_data
+    self._test["target"] = test_target
 
-    print "\t\tFiltered faces to min_count=%d and max_count=%d, leaving a total of %d image faces" \
-        % (min_count, max_count, len(data_results))
-
-    return (np.asarray(data_results), np.asarray(target_results))
-
-def cluster_all_faces(pair_name, X, y, boost_size):
+  def _generate_leveldb(self, file_path, pairs, target, single_data):
     """
-    Pairs faces with data in X and targets in y together, 'boosting' the data set by going
-    through it 'boost_size' times to amplify the amount of data. Returns our boosted data set
-    with paired faces and our target values with 1 for the same face and 0 otherwise.
+    Caffe uses the LevelDB format to efficiently load its training and validation data; this method
+    writes paired out faces in an efficient way into this format.
     """
-    X_pairs = []
-    y_pairs = []
-    num_pairs = len(X)
-    print "num_pairs: %d" % num_pairs
-    for image_1_idx in range(num_pairs):
-        image_1 = X[image_1_idx]
-        for image_2_idx in range(num_pairs):
-            print "image_1_idx: %d, image_2_idx: %d" % (image_1_idx, image_2_idx)
-            image_2 = X[image_2_idx]
-            same = None
-            if y[image_1_idx] == y[image_2_idx]:
-                same = 1
-            else:
-                same = 0
-            image = np.concatenate([image_1, image_2])
-            X_pairs.append(image)
-            y_pairs.append(same)
-
-    print "Produced X_pairs: %d" % len(X_pairs)
-
-    return (np.array(X_pairs), np.array(y_pairs))
-
-def pair_images(X, y, X_pairs, y_pairs):
-    """
-    Given data (X) and targets (y), randomly pairs two images together and appends it to
-    the array X_pairs, adding 1 to y_pairs if the images are the same and 0 otherwise.
-    """
-    num_pairs = len(X)
-    image_1_idx = random.randint(0, num_pairs - 1)
-    image_1 = X[image_1_idx]
-    image_2_idx = random.randint(0, num_pairs - 1)
-    image_2 = X[image_2_idx]
-    same = None
-    if y[image_1_idx] == y[image_2_idx]:
-        same = 1
-    else:
-        same = 0
-    image = np.concatenate([image_1, image_2])
-    X_pairs.append(image)
-    y_pairs.append(same)
-
-def generate_leveldb(file_path, lfw_pairs, channels, width, height):
     print "\tGenerating LevelDB file at %s..." % file_path
     shutil.rmtree(file_path, ignore_errors=True)
     db = leveldb.LevelDB(file_path)
 
     batch = leveldb.WriteBatch()
-    commit_every = 500000
-    # The 'data' entry contains both pairs of images unrolled into a linear vector.
-    for idx, data in enumerate(lfw_pairs["data"]):
+    commit_every = 250000
+    for idx in range(len(pairs)):
         # Each image pair is a top level key with a keyname like 00059999, in increasing
         # order starting from 00000000.
         key = siamese_utils.get_key(idx)
         print "\t\tPreparing key: %s" % key
 
+        # Actually expand our images now, taking the index reference and turning it into real
+        # image pairs; we delay doing this until now for efficiency reasons, as we will probably
+        # have more pairs of images than actual computer memory.
+        image_1 = single_data[pairs[idx][0]]
+        image_2 = single_data[pairs[idx][1]]
+        paired_image = np.concatenate([image_1, image_2])
+
         # Do things like mean normalize, etc. that happen across both testing and validation.
-        data = preprocess_data(data)
+        paired_image = self._preprocess_data(paired_image)
 
         # Each entry in the leveldb is a Caffe protobuffer "Datum" object containing details.
         datum = Datum()
         # One channel for each image in the pair.
-        datum.channels = channels
-        datum.height = height
-        datum.width = width
-        datum.data = data.tobytes()
-        datum.label = lfw_pairs["target"][idx]
+        datum.channels = 2 # One channel for each image in the pair.
+        datum.height = constants.HEIGHT
+        datum.width = constants.WIDTH
+        datum.data = paired_image.tobytes()
+        datum.label = target[idx]
         value = datum.SerializeToString()
         db.Put(key, value)
 
@@ -257,7 +331,7 @@ def generate_leveldb(file_path, lfw_pairs, channels, width, height):
 
     db.Write(batch, sync=True)
 
-def preprocess_data(data):
+  def _preprocess_data(self, data):
     """
     Applies any standard preprocessing we might do on data, whether it is during
     training or testing time. 'data' is a numpy array of unrolled pixel vectors with
@@ -271,66 +345,3 @@ def preprocess_data(data):
     # We don't scale it's values to be between 0 and 1 as our Caffe model will do that.
 
     return data
-
-def prepare_cluster_data():
-    """
-    Load individual faces for 5 different people, rather than pairs. These faces are known
-    to have 10 or more images in the testing data.
-    """
-    print "\tPreparing cluster data..."
-    (train, validation) = prepare_data(write_leveldb=False, pair_faces=False, use_pickle=True)
-
-    train_cluster = get_cluster_data_for(data=train["lfw"]["data"], target=train["lfw"]["target"])
-    validation_cluster = get_cluster_data_for(data=validation["lfw"]["data"],
-        target=validation["lfw"]["target"])
-
-    print "\t\tTraining cluster, # of samples: %d" % train_cluster["data"].shape[0]
-    print "\t\tValidation cluster, # of samples: %d" % validation_cluster["data"].shape[0]
-
-    return {
-        "train": train_cluster,
-        "validation": validation_cluster,
-    }
-
-def get_cluster_data_for(data, target, min_count=10):
-    """
-    Actually generates cluster data for the given data and target values.
-    """
-    # TODO: We might not need this anymore now that we are ensuring we have enough faces.
-    # Extract five unique face identities we can work with.
-    good_identities = []
-    num_hits = {}
-    for idx in range(len(target)):
-        # How many hits have we seen for this particular face so far?
-        identity = str(target[idx])
-        hits_for_face = num_hits.get(identity, 0)
-        hits_for_face = hits_for_face + 1
-        num_hits[identity] = hits_for_face
-
-        # Does this have enough faces for us to care, and have we not seen it before?
-        if hits_for_face >= min_count and target[idx] not in good_identities:
-            good_identities.append(target[idx])
-        if len(good_identities) == 5:
-            break
-
-    # Extract just the indexes with the five good faces we want to work with.
-    indexes_to_keep = [idx for idx in range(len(target)) if target[idx] in good_identities]
-    data_to_keep = []
-    target_to_keep = []
-    for i in range(len(indexes_to_keep)):
-        keep_me_idx = indexes_to_keep[i]
-        data_to_keep.append(data[keep_me_idx])
-        target_to_keep.append(target[keep_me_idx])
-
-    data_to_keep = np.array(data_to_keep)
-
-    # Scale the data.
-    caffe_in = data_to_keep.reshape(len(data_to_keep), 1, constants.HEIGHT, constants.WIDTH) \
-        * 0.00390625
-    caffe_in = preprocess_data(caffe_in)
-
-    return {
-        "data": caffe_in,
-        "target": target_to_keep,
-        "good_identities": good_identities,
-    }
