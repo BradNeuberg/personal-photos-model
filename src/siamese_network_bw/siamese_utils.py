@@ -12,7 +12,7 @@ def mean_normalize(entry):
 
 def get_key(idx):
     """
-    Each image pair is a top level key with a keyname like 00059999, in increasing
-    order starting from 00000000.
+    Each image pair is a top level key with a keyname like 00000059999, in increasing
+    order starting from 00000000000.
     """
-    return "%08d" % (idx,)
+    return "%011d" % (idx,)
