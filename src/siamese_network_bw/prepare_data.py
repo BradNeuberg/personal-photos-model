@@ -295,12 +295,11 @@ class WebFace:
     db = leveldb.LevelDB(file_path)
 
     batch = leveldb.WriteBatch()
-    commit_every = 250000
+    report_every = 250000
     for idx in range(len(pairs)):
         # Each image pair is a top level key with a keyname like 00059999, in increasing
         # order starting from 00000000.
         key = siamese_utils.get_key(idx)
-        print "\t\tPreparing key: %s" % key
 
         # Actually expand our images now, taking the index reference and turning it into real
         # image pairs; we delay doing this until now for efficiency reasons, as we will probably
@@ -323,11 +322,11 @@ class WebFace:
         value = datum.SerializeToString()
         db.Put(key, value)
 
-        if idx % commit_every == 0:
-            print "Comitting batch %d..." % (idx/commit_every)
             db.Write(batch, sync=True)
             del batch
             batch = leveldb.WriteBatch()
+        if idx % report_every == 0:
+            print "Largest key so far %s..." % (key)
 
     db.Write(batch, sync=True)
 
