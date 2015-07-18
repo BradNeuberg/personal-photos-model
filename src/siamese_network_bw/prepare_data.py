@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.cross_validation import train_test_split
 from sklearn.utils import shuffle
 from sklearn.externals import joblib
-import leveldb
+import plyvel
 from caffe_pb2 import Datum
 
 import constants as constants
@@ -292,9 +292,9 @@ class WebFace:
     """
     print "\tGenerating LevelDB file at %s..." % file_path
     shutil.rmtree(file_path, ignore_errors=True)
-    db = leveldb.LevelDB(file_path)
+    db = plyvel.DB(file_path, create_if_missing=True)
 
-    batch = leveldb.WriteBatch()
+    batch = db.write_batch()
     report_every = 250000
     for idx in range(len(pairs)):
         # Each image pair is a top level key with a keyname like 00059999, in increasing
@@ -320,15 +320,14 @@ class WebFace:
         datum.data = paired_image.tobytes()
         datum.label = target[idx]
         value = datum.SerializeToString()
-        db.Put(key, value)
+        batch.put(key, value)
 
-            db.Write(batch, sync=True)
-            del batch
-            batch = leveldb.WriteBatch()
         if idx % report_every == 0:
             print "Largest key so far %s..." % (key)
 
-    db.Write(batch, sync=True)
+    batch.write()
+
+    db.close()
 
   def _preprocess_data(self, data):
     """
