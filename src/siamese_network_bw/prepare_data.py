@@ -219,15 +219,17 @@ class WebFace:
 
     return identities
 
-  def _process_images_for_target(self, target_identity, total_images):
+  def _process_images_for_target(self, target_identity, total_images, max_for_target=100):
     """
     Takes all the face images for a single person, loads them, and pre-processes them such as
-    scaling or color conversion.
+    scaling or color conversion. 'max_for_target' controls the maximum number of image we allow
+    for this target, to prevent class imbalance.
     """
     print "\t\tProcessing images for target face identity %s" % target_identity
     dir_with_images = os.path.join(constants.WEBFACE_DATASET_DIR, target_identity)
     data = []
     target = []
+    total_for_target = 0
     for image_file in glob.glob(os.path.join(dir_with_images, "*.*")):
       total_images = total_images + 1
       im = Image.open(image_file)
@@ -238,6 +240,9 @@ class WebFace:
       im = np.asarray(im.getdata(), dtype=np.uint8)
       data.append(im)
       target.append(target_identity)
+      total_for_target = total_for_target + 1
+      if total_for_target >= max_for_target:
+        break;
 
     # Shuffle data into training and validation sets, then further subdivide the validation
     # set into testing data.
