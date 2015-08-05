@@ -138,8 +138,6 @@ class WebFace:
     target_to_keep = []
     good_identities = []
     identities_to_keep = {}
-    print "-------_get_cluster_data_for"
-    print "len(data): %d" % len(data)
     for idx in range(len(data)):
       person = target[idx]
       if person in identities_to_keep or len(good_identities) < 5:
