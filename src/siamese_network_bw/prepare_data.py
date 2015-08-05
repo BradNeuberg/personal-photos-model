@@ -233,8 +233,7 @@ class WebFace:
     for image_file in glob.glob(os.path.join(dir_with_images, "*.*")):
       total_images = total_images + 1
       im = Image.open(image_file)
-      # Convert to greyscale.
-      im = im.convert("L")
+      # Note: the CASIA WebFace images are already greyscale.
       # TODO: Crop image instead of resizing based on the coordinates of the two eye centers.
       im.thumbnail((constants.WIDTH, constants.HEIGHT), Image.ANTIALIAS)
       im = np.asarray(im.getdata(), dtype=np.uint8)
