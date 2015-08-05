@@ -2,6 +2,7 @@ import os
 import glob
 import random
 import shutil
+import time
 
 from PIL import Image
 import numpy as np
@@ -291,40 +292,45 @@ class WebFace:
     print "\tGenerating LevelDB file at %s..." % file_path
     shutil.rmtree(file_path, ignore_errors=True)
     db = plyvel.DB(file_path, create_if_missing=True)
-
-    batch = db.write_batch()
-    report_every = 250000
+    wb = db.write_batch()
+    commit_every = 250000
+    start_time = int(round(time.time() * 1000))
     for idx in range(len(pairs)):
-        # Each image pair is a top level key with a keyname like 00059999, in increasing
-        # order starting from 00000000.
-        key = siamese_utils.get_key(idx)
+      # Each image pair is a top level key with a keyname like 00000000011, in increasing
+      # order starting from 00000000000.
+      key = siamese_utils.get_key(idx)
 
-        # Actually expand our images now, taking the index reference and turning it into real
-        # image pairs; we delay doing this until now for efficiency reasons, as we will probably
-        # have more pairs of images than actual computer memory.
-        image_1 = single_data[pairs[idx][0]]
-        image_2 = single_data[pairs[idx][1]]
-        paired_image = np.concatenate([image_1, image_2])
+      # Actually expand our images now, taking the index reference and turning it into real
+      # image pairs; we delay doing this until now for efficiency reasons, as we will probably
+      # have more pairs of images than actual computer memory.
+      image_1 = single_data[pairs[idx][0]]
+      image_2 = single_data[pairs[idx][1]]
+      paired_image = np.concatenate([image_1, image_2])
 
-        # Do things like mean normalize, etc. that happen across both testing and validation.
-        paired_image = self._preprocess_data(paired_image)
+      # Do things like mean normalize, etc. that happen across both testing and validation.
+      paired_image = self._preprocess_data(paired_image)
 
-        # Each entry in the leveldb is a Caffe protobuffer "Datum" object containing details.
-        datum = Datum()
-        # One channel for each image in the pair.
-        datum.channels = 2 # One channel for each image in the pair.
-        datum.height = constants.HEIGHT
-        datum.width = constants.WIDTH
-        datum.data = paired_image.tobytes()
-        datum.label = target[idx]
-        value = datum.SerializeToString()
-        batch.put(key, value)
+      # Each entry in the leveldb is a Caffe protobuffer "Datum" object containing details.
+      datum = Datum()
+      # One channel for each image in the pair.
+      datum.channels = 2 # One channel for each image in the pair.
+      datum.height = constants.HEIGHT
+      datum.width = constants.WIDTH
+      datum.data = paired_image.tostring()
+      datum.label = target[idx]
+      value = datum.SerializeToString()
+      wb.put(key, value)
 
-        if idx % report_every == 0:
-            print "Largest key so far %s..." % (key)
+      if (idx + 1) % commit_every == 0:
+        wb.write()
+        del wb
+        wb = db.write_batch()
+        end_time = int(round(time.time() * 1000))
+        total_time = end_time - start_time
+        print "Wrote batch, key: %s, time for batch: %d ms" % (key, total_time)
+        start_time = int(round(time.time() * 1000))
 
-    batch.write()
-
+    wb.write()
     db.close()
 
   def _preprocess_data(self, data):
