@@ -62,7 +62,7 @@ I let all of these train with a larger number of pairings then before; surprisin
 
 At this point I decided that siamese networks didn't seem to be worth their complexity -- they didn't seem capable of easily getting better results by absorbing more data, whereas a simple softmax classifier like AlexNet used on the ImageNet competition seemed capable of getting better as it used more data without the added complexity introduced by siamese networks.
 
-At this point I decided to put a stop to the project -- it was a great learning experience and helped ground much of the theory I had learned in Geoffrey Hinton's Coursera course into actual work on a hard problem that didn't have easy answers.
+After working on the project for a few months I've decided to move on to other projects and study — it was a great learning experience and helped ground much of the theory I had learned in Geoffrey Hinton‘s Coursera course into actual work on a hard problem that didn’t have easy answers.
 
 If I were to continue with the project, I would take one of two paths:
 * Train on a standard deep network with a softmax classifier, such as AlexNet or Inception. I would then 'chop off' the softmax classifier and use the final layer as an embedding that I could do comparisons on, such as the L2 distance between two embedded representations of two faces, to see if two faces are from the same person against new faces that weren't trained against.
