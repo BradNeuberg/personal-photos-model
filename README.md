@@ -18,7 +18,7 @@ Note that siamese networks do facial validation, not classification. This means 
 
 I also decided to start with gray scale images only rather than full RGB images. This was for two reasons: 1) when I found an optimal architecture generalizing to RGB wouldn't be that hard, and 2) training and setup time would be much faster as I would be dealing with much less data (grayscale vs. color).
 
-With these decisions in place, I moved to setup Caffe and created a pipeline that I could run experiments on. I started with a collection of bash scripts but quickly moved to a unified Python based pipeline that was easier to maintain, extend, and to run quick experiments on as I tried different architectures and hyperparameter settings. The pipeline generated graphs such iterations vs. loss on training/validation sets:
+With these decisions in place, I moved to setup Caffe and created a pipeline that I could run experiments on. I started with a collection of bash scripts but quickly moved to a unified Python based pipeline that was easier to maintain, extend, and to run quick experiments on as I tried different architectures and hyperparameter settings. The pipeline generated graphs such as iterations vs. loss on training/validation sets:
 
 <img src="src/siamese_network_bw/logs/output0047.png" />
 
@@ -26,7 +26,7 @@ A trained siamese network learns a function that clusters similar faces near eac
 
 To evaluate how well the training was happening on the siamese clustering function independent of the hyperparameter margin, I tracked both the loss falling over time on both the training and validation data sets as well as simply graphing the clusters resulting from a trained model on a subset of faces.
 
-For a long time, I essentially ended up with validation cluster graphs that looked like this, which is not good; this represents about five people, with each person getting a unique color:
+For a long time, I essentially ended up with validation cluster graphs that looked like this, which is not good; this represents about five people, with each person getting a unique color. The location of each dot is the x/y value emitted by the trained siamese network similarity function:
 
 <img src="src/siamese_network_bw/logs/output0020.cluster.png" />
 
@@ -34,20 +34,22 @@ If you look in [src/siamese_network_bw/logs/](src/siamese_network_bw/logs/) you'
 
 There were several solutions to getting better clustering.
 
-First, it turns out there were subtle bugs in how I was preparing my data for Caffe that lead to bad training. I devolved my network from faces to using MNIST hand-labelled numbers and got good results on that; this flushed out several bugs in my code.
+First, it turns out there were subtle bugs in how I was preparing my data for Caffe that lead to bad training. I devolved my network from faces to using MNIST hand-labelled numbers and got good results on that; this helped to flush out several subtle bugs in my code that were related to improperly preparing my data for Caffe.
 
-Second, it turned out that the LFW dataset I was using is very imbalanced: a few people have a huge number of representative images, while most people have very few. This was skewing the training. I ended up getting access to the [CASIA WebFace dataset](http://arxiv.org/pdf/1411.7923.pdf) which has about 500,000 face images. I subsetted this to about the same size as LFW (13K faces divided 80% training and 20% validation).
+Second, it turned out that the LFW dataset I was using is very imbalanced: a few people have a huge number of representative images, while most people have very few. This was skewing the training as there weren't enough positive and negative examples for most people to work with. I ended up getting access to the [CASIA WebFace dataset](http://arxiv.org/pdf/1411.7923.pdf) which has about 500,000 face images as opposed to LFW's ~13,000 images. I subsetted this to about the same size as LFW (13K faces divided 80% training and 20% validation).
 
-Third, the LFW images I was using did not have 'face alignment', which meant that some key point in the faces were always in the same place. I ended up using deep aligned images from the CASIA WebFace dataset, which means that the eyes for all people were always in the same location in the image. While my network could probably have eventually discerned and learned this pattern itself, providing facial alignment in the input data probably helps to reduce the amount of data needed and training time by a significant factor.
+Third, the LFW images I was using did not have 'face alignment', which meant that some key point in the faces were always in the same place. I ended up using deep aligned images from the CASIA WebFace dataset, which means that the eyes for all people were always in the same location in the image. While my network could probably have eventually discerned and learned this pattern itself, providing facial alignment in the input data probably helps to reduce the amount of data needed and training time by a significant factor, possibly orders of magnitude.
 
 Finally, and most importantly, how I generated my positive and negative pairings for training turned out to be _very_ important. I only started getting good clustering once I generated all possible positive and negative pairings amongst my training set. The [original siamese network paper](http://yann.lecun.com/exdb/publis/pdf/chopra-05.pdf) actually generated all possible pairings to get their results.
 
 However, generating all possible pairings can explode your data size very fast. I started with a much smaller set of faces and generated all possible positive and negative pairings of these. I ended up with stronger clustering; here are the images for a single person clustering:
 
-<img src="src/siamese_network_bw/logs/output0038.cluster.png" />
+<img src="src/siamese_network_bw/logs/output0038_train.cluster.png" />
 
 Going on the hypothesis that generating all possible positive and negative pairings seemed like a good pathway forward, I decided to take a subset of the CASIA WebFace data and do this. There seemed to be two possibilities:
+
 1) Pre-generate all possible positive and negative pairings and train from them.
+
 2) Figure out statistically probable positive and negative pairings as if you had hard generated them at data prep time and feed them into Caffe at runtime using a [memory data layer](http://caffe.berkeleyvision.org/tutorial/layers.html#in-memory)
 
 While #2 is much more desirable from a resources stand point, it also seemed quite tricky to figure out the best statistical sampling approach as well as code up the C++ Caffe memory data layer. I decided to start with #1 on a subset of my images to see how the approach scaled before getting fancy with #1.
