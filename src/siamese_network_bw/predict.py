@@ -9,7 +9,7 @@ import siamese_network_bw.siamese_utils as siamese_utils
 
 def predict(img_1, img_2):
     print "Predicting..."
-    # TODO!!! Implement!!!
+    # TODO: Implement.
 
 def test_clusters(data=None, weight_file=constants.TRAINED_WEIGHTS):
     """
