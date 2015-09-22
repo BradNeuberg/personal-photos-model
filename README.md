@@ -50,27 +50,27 @@ Going on the hypothesis that generating all possible positive and negative pairi
 
 1) Pre-generate all possible positive and negative pairings and train from them.
 
-2) Figure out statistically probable positive and negative pairings as if you had hard generated them at data prep time and feed them into Caffe at runtime using a [memory data layer](http://caffe.berkeleyvision.org/tutorial/layers.html#in-memory)
+2) Figure out statistically probable positive and negative pairings as if you had hard generated them at data prep time and feed them into Caffe at runtime using a [memory data layer](http://caffe.berkeleyvision.org/tutorial/layers.html#in-memory).
 
-While #2 is much more desirable from a resources stand point, it also seemed quite tricky to figure out the best statistical sampling approach as well as code up the C++ Caffe memory data layer. I decided to start with #1 on a subset of my images to see how the approach scaled before getting fancy with #1.
+While #2 is much more desirable from a resources stand point, it also seemed quite tricky to figure out the best statistical sampling approach as well as code up the C++ Caffe memory data layer. I decided to start with #1 on a subset of my images to see how the approach scaled before getting fancy with #2.
 
 Generating all possible positive and negative pairings gets expensive fast due to combinatorial explosion. Up till now I had been training on my laptop which has a GPU and an SSD, but as soon as I wanted to generate all positive and negative pairings for a subset of faces I was looking at about 1.5 TBs of data. This was much too large for my SSD; it also caused my relatively naive data preparation pipeline to fall over.
 
 I rewrote my data pipeline to prepare its image pairing data in LevelDB in a way that memory use was constant (pairings would be prepared and written to disk in batches). Data prep performance was still much too slow; profiling revealed that both protobuf serialization and the default Python LevelDB library were both slow. I swapped out my LevelDB library for [Plyvel](https://plyvel.readthedocs.org/en/latest/) and also switched to a more efficient [C++ implementation of Protobuf](http://yz.mit.edu/wp/fast-native-c-protocol-buffers-from-python/) that still had Python bindings. Both of these helped speed up the data prep time. Since my SSD was only 225 GBs, I also switched to writing my 1.5 TB data to an external hard drive.
 
-I let all of these train; surprisingly, the network did not do well at clustering. It seemed that clustering would happen for smaller sets of all pairings but would wildly diverge when I increased the data size. At this point I was only training on about 8000 images from the full CASIA-WebFace data set of 500,000 images so it was disappointing that the siamese network fell over when using all possible positive/negative pairings from this smaller data set; it did well on a much smaller number of images but didn't get better with more data.
+I let all of these train with a larger number of pairings then before; surprisingly, the network did not do well at clustering even though this approach had done well earlier with a smaller number of images. It seemed that clustering would happen for smaller sets of all pairings but would wildly diverge when I increased the data size. At this point I was only training on about 8000 images from the full CASIA-WebFace data set of 500,000 images so it was disappointing that the siamese network fell over when using all possible positive/negative pairings from this smaller data set; it did well on a much smaller number of images but didn't get better with more data.
 
 At this point I decided that siamese networks didn't seem to be worth their complexity -- they didn't seem capable of easily getting better results by absorbing more data, whereas a simple softmax classifier like AlexNet used on the ImageNet competition seemed capable of getting better as it used more data without the added complexity introduced by siamese networks.
 
 At this point I decided to put a stop to the project -- it was a great learning experience and helped ground much of the theory I had learned in Geoffrey Hinton's Coursera course into actual work on a hard problem that didn't have easy answers.
 
 If I were to continue with the project, I would take one of two paths:
-* Train on a standard deep network with a softmax classifier, such as AlexNet or Inception. I would then 'chop off' the softmax classifier and use the final layer as an embedding that I could do comparisons on to see if two faces are from the same person against new faces that weren't trained against.
+* Train on a standard deep network with a softmax classifier, such as AlexNet or Inception. I would then 'chop off' the softmax classifier and use the final layer as an embedding that I could do comparisons on, such as the L2 distance between two embedded representations of two faces, to see if two faces are from the same person against new faces that weren't trained against.
 * I might explore a more sophisticated embedding similar to the siamese network model but more nuanced, such as [Google's FaceNet](http://arxiv.org/abs/1503.03832).
 
 # Using this Code
 
-Feel free to use this code for your own project! It's available under an Apache 2 license. Note, though, that this code has been cleaned up and significantly extended for platforms like running on EC2 over in the [cloudless open source project](https://github.com/BradNeuberg/cloudless) I'm part of.
+Feel free to use this code for your own project! It's available under an Apache 2 license. Note, though, that this code has been cleaned up and significantly extended for platforms like running on EC2 over in the [cloudless open source project](https://github.com/BradNeuberg/cloudless) I'm part of, so you probably want to grab that code instead.
 
 # Setup
 
