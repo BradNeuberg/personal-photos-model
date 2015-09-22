@@ -42,7 +42,7 @@ Third, the LFW images I was using did not have 'face alignment', which meant tha
 
 Finally, and most importantly, how I generated my positive and negative pairings for training turned out to be _very_ important. I only started getting good clustering once I generated all possible positive and negative pairings amongst my training set. The [original siamese network paper](http://yann.lecun.com/exdb/publis/pdf/chopra-05.pdf) actually generated all possible pairings to get their results.
 
-However, generating all possible pairings can explode your data size very fast. I started with a much smaller set of faces and generated all possible positive and negative pairings of these. I ended up with stronger clustering; here are the images for a single person clustering:
+However, generating all possible pairings can explode your data size very fast. I started with a much smaller set of faces and generated all possible positive and negative pairings of these. I ended up with stronger clustering; here is the graph for a single person clustering:
 
 <img src="src/siamese_network_bw/logs/output0038_train.cluster.png" />
 
