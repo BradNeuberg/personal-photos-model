@@ -26,6 +26,7 @@ def train(output_graphs, data=None, weight_file=None, note=None):
         if weight_file == None:
             weight_file = trained_weight_file
         predict.test_clusters(data, weight_file)
+        predict.test_validation_pairings(data, weight_file)
 
 def run_trainer():
     """

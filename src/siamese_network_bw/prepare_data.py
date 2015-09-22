@@ -18,7 +18,7 @@ import siamese_network_bw.siamese_utils as siamese_utils
 # We currently restrict ourselves to a subset of the WebFace data. This flag controls
 # how many total non-paired faces we pull from this dataset. We currently keep it about the
 # same size as LFW.
-MAX_FACES = 13000
+MAX_FACES = 500
 
 class WebFace:
   """
@@ -129,6 +129,23 @@ class WebFace:
     return {
         "train": train_cluster,
         "validation": validation_cluster,
+    }
+
+  def get_validation_images(self):
+    """
+    Gets our validation data and target details, shaped into being 2D images, loading them if they
+    are not loaded yet.
+    """
+    if not self.is_loaded():
+      self._load_pickled_data()
+
+    data = np.reshape(self._validation["data"], (len(self._validation["data"]), 1, constants.WIDTH,
+      constants.HEIGHT))
+    target = self._validation["target"]
+
+    return {
+      "data": data,
+      "target": target,
     }
 
   def _get_cluster_data_for(self, data, target):
